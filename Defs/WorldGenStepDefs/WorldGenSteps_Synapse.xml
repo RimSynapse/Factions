@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <WorldGenStepDef>
+    <defName>SynapseFactions</defName>
+    <order>850</order> <!-- After faction generation (usually 800-810) -->
+    <worldGenStep Class="RimSynapse.Factions.WorldGenStep_SynapseFactions" />
+  </WorldGenStepDef>
+</Defs>
