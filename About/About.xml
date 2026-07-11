@@ -27,19 +27,6 @@
     <description>
 [h1]RimSynapse - Factions[/h1]
 [b]📚 [url=https://github.com/RimSynapse/RimSynapse-Factions/wiki]Official Wiki &amp; Documentation[/url][/b]
-            <steamWorkshopUrl>steam://url/CommunityFilePage/3760829776</steamWorkshopUrl>
-        </li>
-    </modDependencies>
-    <loadAfter>
-        <li>RimSynapse.Core</li>
-        <li>Ludeon.RimWorld.Royalty</li>
-        <li>Ludeon.RimWorld.Ideology</li>
-        <li>Ludeon.RimWorld.Biotech</li>
-        <li>Ludeon.RimWorld.Anomaly</li>
-    </loadAfter>
-    <description>
-[h1]RimSynapse - Factions[/h1]
-[b]📚 [url=https://github.com/RimSynapse/RimSynapse-Factions/wiki]Official Wiki &amp; Documentation[/url][/b]
 
 [b]Companion Mod for RimSynapse.[/b]
 Intercepts world generation to dynamically spawn cloned factions, establish geographic settlement territories, and generate deep LLM histories for the resulting empires and nations.
