@@ -29,3 +29,30 @@ I think we need to revisit all of the rimsynapse-factions suggestions as these f
 **RimSynapse Feature:** <missing>
 **AI Suggestion:** Interaction with the Comms Console and radio broadcasts, providing intercepted enemy communications.
 **User Input:** This is storyteller and maybe factions depending on what function is being used.
+
+## Expansion Inspirations
+
+### Feature 5: Royal Splinter Houses & Vassalage (Royalty)
+**Source Credit:** Faction Territories and Vassalage / Vanilla Factions Expanded - Empire
+**RimSynapse Feature:** <missing>
+**AI Suggestion:** The Empire faction generates rich political intrigue. We can create "Vassal" factions or splinter royal houses that war with each other, forcing the player to pick sides.
+
+### Feature 6: Holy Wars & Schisms (Ideology)
+**Source Credit:** Vanilla Ideology Expanded
+**RimSynapse Feature:** <missing>
+**AI Suggestion:** Faction generation incorporates their meme history. Holy wars can be triggered organically where two factions become permanent enemies due to totally incompatible precepts.
+
+### Feature 7: Xenotype Warmongers & Enclaves (Biotech)
+**Source Credit:** Vanilla Races Expanded
+**RimSynapse Feature:** <missing>
+**AI Suggestion:** Factions entirely composed of specific xenotypes with specific goals (e.g., Neanderthal warmongers, Highmate diplomatic envoys, or Sanguophage shadow cabals).
+
+### Feature 8: Void Cult Factions (Anomaly)
+**Source Credit:** Anomaly DLC / Call of Cthulhu - Cults
+**RimSynapse Feature:** <missing>
+**AI Suggestion:** Hidden cult factions that worship the void. Their leader is a twisted entity or a ghoulified pawn. They send corrupted caravans or demand sacrifices rather than silver.
+
+### Feature 9: Starfaring Fleets & Lost Empires (Odyssey)
+**Source Credit:** Save Our Ship 2 / RimNauts
+**RimSynapse Feature:** <missing>
+**AI Suggestion:** Factions representing deep-space fleets, lost colony ships, or ancient star-faring empires that interact with the planet from orbit before the player ever launches a ship.
