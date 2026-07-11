@@ -56,3 +56,13 @@ I think we need to revisit all of the rimsynapse-factions suggestions as these f
 **Source Credit:** Save Our Ship 2 / RimNauts
 **RimSynapse Feature:** <missing>
 **AI Suggestion:** Factions representing deep-space fleets, lost colony ships, or ancient star-faring empires that interact with the planet from orbit before the player ever launches a ship.
+
+### Feature 10: LLM-Driven World Generation & Landing Sequences
+**Rimchat Feature:** N/A
+**RimSynapse Feature:** <missing>
+**User Input/Plan:** 
+- **Dynamic Faction Spawning:** Instead of using the vanilla slider count, dynamically calculate the "Ideal Faction Count" based on planet coverage and geographic diversity. If the map demands 15 factions, programmatically clone vanilla templates.
+- **Geography-First Settlements:** Settlements should cluster in areas where they can gain the most resources (e.g., valleys near rivers, mountain passes). Settlements receive a Population Value (1-500).
+- **National Boundaries:** After settlements are placed, they are grouped to form national boundaries relating to geographic areas (e.g., an entire forest is contested, claimed, or unclaimed). Factions are assigned to these borders.
+- **The LLM Awakening:** Run a background process during the "Select Landing Site" globe screen. The LLM evaluates the grouped factions, rewrites their histories, alters their names, and establishes geopolitics based on the map.
+- **The Landing Sequence:** When the player crashes or starts the game, they are choosing a territory to either "Contest" (if claimed) or "Claim" (if unclaimed).
