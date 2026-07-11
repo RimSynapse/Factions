@@ -4,7 +4,7 @@
 
     <PropertyGroup>
         <TargetFramework>net472</TargetFramework>
-        <AssemblyName>RimSynapseStoryTeller</AssemblyName>
+        <AssemblyName>RimSynapseFactions</AssemblyName>
         <RootNamespace>RimSynapse</RootNamespace>
         <LangVersion>9.0</LangVersion>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
