@@ -25,19 +25,25 @@
         <li>Ludeon.RimWorld.Anomaly</li>
     </loadAfter>
     <description>
-[h1]RimSynapse - Factions[/h1]
-[b]📚 [url=https://github.com/RimSynapse/RimSynapse-Factions/wiki]Official Wiki &amp; Documentation[/url][/b]
+RimSynapse - Factions
+Official Wiki and Documentation: https://github.com/RimSynapse/RimSynapse-Factions/wiki
 
-[b]Companion Mod for RimSynapse.[/b]
+Companion Mod for RimSynapse.
 Intercepts world generation to dynamically spawn cloned factions, establish geographic settlement territories, and generate deep LLM histories for the resulting empires and nations.
 
-[h2]Compatibility Matrix[/h2]
-[list]
-[*] [b]Royalty DLC:[/b] Compatible &amp; Optional. Enables royal splinter houses and vassalage generation.
-[*] [b]Ideology DLC:[/b] Compatible &amp; Optional. Integrates holy wars and organically generated schisms.
-[*] [b]Biotech DLC:[/b] Compatible &amp; Optional. Enables entire factions composed of xenotype warmongers.
-[*] [b]Anomaly DLC:[/b] Compatible &amp; Optional. Generates hidden cult factions that worship the void.
-[*] [b][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3760830041]RimSynapse - Psychology[/url]:[/b] Compatible &amp; Optional. Made better with Psychology! Automatically generates deep psychological profiles, traits, and backstories for Faction Leaders.
-[/list]
+--- Changelog ---
+v0.4.0
+- Updated to support RimSynapse Core v0.4.0 (Multi-provider routing and Image generation).
+
+--- Compatibility Matrix ---
+- Royalty DLC: Compatible and Optional. Enables royal splinter houses and vassalage generation.
+- Ideology DLC: Compatible and Optional. Integrates holy wars and organically generated schisms.
+- Biotech DLC: Compatible and Optional. Enables entire factions composed of xenotype warmongers.
+- Anomaly DLC: Compatible and Optional. Generates hidden cult factions that worship the void.
+- RimSynapse - Psychology: Compatible and Optional. Made better with Psychology! Automatically generates deep psychological profiles, traits, and backstories for Faction Leaders. (https://steamcommunity.com/sharedfiles/filedetails/?id=3760830041)
+- RimSynapse - WorldNews: Compatible and Optional. Generates dynamic newspapers detailing your factions' histories, holy wars, and geopolitical shifts.
+
+--- Requirements ---
+- RimSynapse - Core (Must be loaded before this mod)
     </description>
 </ModMetaData>
