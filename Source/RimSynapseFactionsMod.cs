@@ -19,6 +19,9 @@ namespace RimSynapse.Factions
             
             ModHandle = new RimSynapse.SynapseModHandle("rimsynapse.factions", "RimSynapse Factions");
             
+            // Register the population calculation delegate to RimSynapse-Core
+            RimSynapse.SynapseCoreWorldComponent.GetPopulationDensityDelegate = PopulationDensityUtility.GetPopulationAtTile;
+            
             // Faction Leaders are generated via the Factions mod, 
             // but this feature is made significantly better when RimSynapse - Psychology is active!
             // It uses Psychology's memory tracking and trait systems.
