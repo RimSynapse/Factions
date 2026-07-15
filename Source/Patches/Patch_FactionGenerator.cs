@@ -7,11 +7,11 @@ using Verse;
 
 namespace RimSynapse.Factions.Patches
 {
-    [HarmonyPatch(typeof(FactionGenerator), "GenerateFactionsIntoWorld")]
+    [HarmonyPatch(typeof(FactionGenerator), "GenerateFactionsIntoWorldLayer")]
     public static class Patch_FactionGenerator_GenerateFactionsIntoWorld
     {
         [HarmonyPrefix]
-        public static bool Prefix()
+        public static bool Prefix(PlanetLayer layer, List<FactionDef> factions)
         {
             RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Hijacking FactionGenerator to spawn dynamic clones...", "factions");
 
@@ -50,7 +50,7 @@ namespace RimSynapse.Factions.Patches
                 {
                     for (int i = 0; i < def.requiredCountAtGameStart; i++)
                     {
-                        Faction faction = FactionGenerator.NewGeneratedFaction(new FactionGeneratorParms(def, default(IdeoGenerationParms), true));
+                        Faction faction = FactionGenerator.NewGeneratedFaction(layer, new FactionGeneratorParms(def, default(IdeoGenerationParms), true));
                         Find.FactionManager.Add(faction);
                         currentCount++;
                     }
@@ -62,7 +62,7 @@ namespace RimSynapse.Factions.Patches
             {
                 var cloneDef = poolToClone.RandomElement();
                 // Create a clone
-                Faction faction = FactionGenerator.NewGeneratedFaction(new FactionGeneratorParms(cloneDef, default(IdeoGenerationParms), true));
+                Faction faction = FactionGenerator.NewGeneratedFaction(layer, new FactionGeneratorParms(cloneDef, default(IdeoGenerationParms), true));
                 
                 // We mark it uniquely in our WorldComponent so the LLM knows it's a clone/new state
                 Find.FactionManager.Add(faction);
