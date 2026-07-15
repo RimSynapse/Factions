@@ -13,7 +13,7 @@ namespace RimSynapse.Factions.Patches
         [HarmonyPrefix]
         public static bool Prefix()
         {
-            RimSynapse.SynapseLog.Info("factions", "[RimSynapse-Factions] Hijacking FactionGenerator to spawn dynamic clones...");
+            RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Hijacking FactionGenerator to spawn dynamic clones...", "factions");
 
             // Calculate ideal count based on planet coverage.
             // Vanilla defaults to around 5-7. If coverage is 30% (default), maybe we want 10 factions.
@@ -69,7 +69,7 @@ namespace RimSynapse.Factions.Patches
                 currentCount++;
             }
 
-            RimSynapse.SynapseLog.Info("factions", $"[RimSynapse-Factions] Spawned {currentCount} total factions dynamically.");
+            RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Spawned {currentCount} total factions dynamically.", "factions");
 
             // We return false to skip the vanilla generator, since we handled it all.
             return false;

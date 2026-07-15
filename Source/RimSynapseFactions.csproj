@@ -3,7 +3,7 @@
     <Import Project="GamePath.props" />
 
     <PropertyGroup>
-        <TargetFramework>net472</TargetFramework>
+        <TargetFramework>net48</TargetFramework>
         <AssemblyName>RimSynapseFactions</AssemblyName>
         <RootNamespace>RimSynapse</RootNamespace>
         <LangVersion>9.0</LangVersion>
@@ -38,6 +38,12 @@
         <!-- Reference Core Mod -->
         <Reference Include="RimSynapseCore">
             <HintPath>..\..\RimSynapse-Core\Assemblies\RimSynapseCore.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        
+        <!-- Reference Map Mode Framework -->
+        <Reference Include="MapModeFramework">
+            <HintPath>$(SteamWorkshopPath)\3296654393\1.6\Assemblies\MapModeFramework.dll</HintPath>
             <Private>false</Private>
         </Reference>
         

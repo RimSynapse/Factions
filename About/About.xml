@@ -16,9 +16,16 @@
             <downloadUrl>https://github.com/RimSynapse/RimSynapse-Core/releases/latest</downloadUrl>
             <steamWorkshopUrl>steam://url/CommunityFilePage/3760829776</steamWorkshopUrl>
         </li>
+        <li>
+            <packageId>NozoMe.MapModeFramework</packageId>
+            <displayName>Map Mode Framework</displayName>
+            <downloadUrl>https://github.com/nozomemu/MapModeFramework/releases/latest</downloadUrl>
+            <steamWorkshopUrl>steam://url/CommunityFilePage/3296654393</steamWorkshopUrl>
+        </li>
     </modDependencies>
     <loadAfter>
         <li>RimSynapse.Core</li>
+        <li>NozoMe.MapModeFramework</li>
         <li>Ludeon.RimWorld.Royalty</li>
         <li>Ludeon.RimWorld.Ideology</li>
         <li>Ludeon.RimWorld.Biotech</li>

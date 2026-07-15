@@ -10,12 +10,12 @@ namespace RimSynapse.Factions
         
         public RimSynapseFactionsMod(ModContentPack content) : base(content)
         {
-            RimSynapse.SynapseLog.Info("factions", "[RimSynapse-Factions] Initializing Mod...");
+            RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Initializing Mod...", "factions");
             
             var harmony = new Harmony("rimsynapse.factions");
             harmony.PatchAll();
             
-            RimSynapse.SynapseLog.Info("factions", "[RimSynapse-Factions] Harmony Patches applied.");
+            RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Harmony Patches applied.", "factions");
             
             ModHandle = new RimSynapse.SynapseModHandle("rimsynapse.factions", "RimSynapse Factions");
             

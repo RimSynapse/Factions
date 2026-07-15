@@ -11,7 +11,7 @@ namespace RimSynapse.Factions
 
         public override void GenerateFresh(string seed, PlanetLayer layer)
         {
-            RimSynapse.SynapseLog.Info("factions", "[RimSynapse-Factions] Generating Factions dynamically based on world geography.");
+            RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Generating Factions dynamically based on world geography.", "factions");
             
             // Note: This step is technically vanilla's Factions step.
             // We need a Harmony patch to intercept the standard FactionGenerator to dynamically clone definitions
