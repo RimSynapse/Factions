@@ -3,7 +3,7 @@
     <name>RimSynapse - Factions</name>
     <author>RimSynapse Team</author>
     <packageId>RimSynapse.Factions</packageId>
-    <url>https://github.com/RimSynapse/RimSynapse-Factions</url>
+    <url>https://github.com/RimSynapse/Factions</url>
     <modVersion>0.3.0</modVersion>
     <supportedVersions>
         <li>1.5</li>
@@ -13,7 +13,7 @@
         <li>
             <packageId>RimSynapse.Core</packageId>
             <displayName>RimSynapse - Core</displayName>
-            <downloadUrl>https://github.com/RimSynapse/RimSynapse-Core/releases/latest</downloadUrl>
+            <downloadUrl>https://github.com/RimSynapse/Core/releases/latest</downloadUrl>
             <steamWorkshopUrl>steam://url/CommunityFilePage/3760829776</steamWorkshopUrl>
         </li>
         <li>
@@ -33,7 +33,7 @@
     </loadAfter>
     <description>
 RimSynapse - Factions
-Official Wiki and Documentation: https://github.com/RimSynapse/RimSynapse-Factions/wiki
+Official Wiki and Documentation: https://github.com/RimSynapse/Factions/wiki
 
 Companion Mod for RimSynapse.
 Intercepts world generation to dynamically spawn cloned factions, establish geographic settlement territories, and generate deep LLM histories for the resulting empires and nations.

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "ReOMp6k1j2w=",
+  "dgSpecHash": "2HAxcOLVack=",
   "success": true,
-  "projectFilePath": "d:\\github\\RimSynapse-Factions\\Source\\RimSynapseFactions.csproj",
+  "projectFilePath": "d:\\github\\rimsynapse\\Factions\\Source\\RimSynapseFactions.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\sealt\\.nuget\\packages\\microsoft.netframework.referenceassemblies\\1.0.3\\microsoft.netframework.referenceassemblies.1.0.3.nupkg.sha512",
     "C:\\Users\\sealt\\.nuget\\packages\\microsoft.netframework.referenceassemblies.net48\\1.0.3\\microsoft.netframework.referenceassemblies.net48.1.0.3.nupkg.sha512",
