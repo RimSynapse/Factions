@@ -8,7 +8,6 @@
     <texture>World/WorldObjects/TribalSettlement</texture> <!-- Placeholder texture -->
     <expandingIcon>true</expandingIcon>
     <expandingIconTexture>World/WorldObjects/TribalSettlement</expandingIconTexture>
-    <useDynamicIcon>true</useDynamicIcon>
     <selectable>true</selectable>
     <neverMultiSelect>true</neverMultiSelect>
   </WorldObjectDef>

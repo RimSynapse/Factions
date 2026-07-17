@@ -1,5 +1,6 @@
 using HarmonyLib;
 using Verse;
+using RimWorld;
 using System.Linq;
 
 namespace RimSynapse.Factions
@@ -14,6 +15,23 @@ namespace RimSynapse.Factions
             
             var harmony = new Harmony("rimsynapse.factions");
             harmony.PatchAll();
+
+            // Dynamically patch all concrete subclasses of PawnsArrivalModeWorker since patching the abstract class directly fails
+            var postfixMethod = typeof(RimSynapse.Factions.Patches.PawnsArrivalModeWorker_Arrive_Patch).GetMethod("Postfix");
+            if (postfixMethod != null)
+            {
+                foreach (var type in typeof(PawnsArrivalModeWorker).Assembly.GetTypes())
+                {
+                    if (typeof(PawnsArrivalModeWorker).IsAssignableFrom(type) && !type.IsAbstract)
+                    {
+                        var targetMethod = type.GetMethod("Arrive", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                        if (targetMethod != null)
+                        {
+                            harmony.Patch(targetMethod, postfix: new HarmonyMethod(postfixMethod));
+                        }
+                    }
+                }
+            }
             
             RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Harmony Patches applied.", "factions");
             

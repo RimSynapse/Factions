@@ -31,7 +31,7 @@ namespace RimSynapse.Factions
                 if (faction.Hidden || faction.IsPlayer) continue;
                 Color color = faction.Color;
                 color.a = 0.4f; // Transparent overlay so background mountains/rivers show
-                factionMats[faction] = SolidColorMaterials.SimpleSolidColorMaterial(color, false);
+                factionMats[faction] = MaterialPool.MatFrom(BaseContent.WhiteTex, ShaderDatabase.MetaOverlay, color, 3510);
             }
 
             // 2. Precalculate the closest faction owner for all land tiles
