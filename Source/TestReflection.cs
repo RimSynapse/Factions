@@ -12,3 +12,4 @@ public class TestReflection
         foreach (var p in t.GetProperties()) Console.WriteLine("Property: " + p.Name);
     }
 }
+

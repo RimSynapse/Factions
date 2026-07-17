@@ -30,12 +30,69 @@ namespace RimSynapse.Factions
         {
             if (densityMats != null) return;
 
-            densityMats = new Material[101];
-            for (int i = 0; i <= 100; i++)
+            // 5 density segments * 4 elevation bands = 20 materials
+            densityMats = new Material[20];
+
+            // Define the base colors for each density segment (0 to 4) and elevation band (0 to 3)
+            // Segment 0: Background (Brown)
+            Color[] seg0 = new Color[] {
+                new Color(0.48f, 0.35f, 0.2f, 0.45f),   // Lowlands
+                new Color(0.42f, 0.28f, 0.14f, 0.5f),   // Midlands
+                new Color(0.33f, 0.2f, 0.08f, 0.55f),   // Highlands
+                new Color(0.24f, 0.14f, 0.05f, 0.6f)    // Mountains
+            };
+            // Segment 1: Low Density (10-20, light yellow-green)
+            Color[] seg1 = new Color[] {
+                new Color(0.6f, 0.7f, 0.2f, 0.5f),
+                new Color(0.5f, 0.6f, 0.18f, 0.55f),
+                new Color(0.4f, 0.5f, 0.15f, 0.6f),
+                new Color(0.3f, 0.4f, 0.12f, 0.65f)
+            };
+            // Segment 2: Medium Density (20-30, soft grass green)
+            Color[] seg2 = new Color[] {
+                new Color(0.35f, 0.75f, 0.15f, 0.55f),
+                new Color(0.28f, 0.65f, 0.12f, 0.6f),
+                new Color(0.2f, 0.55f, 0.1f, 0.65f),
+                new Color(0.12f, 0.45f, 0.08f, 0.7f)
+            };
+            // Segment 3: High Density (30-40, kelly green)
+            Color[] seg3 = new Color[] {
+                new Color(0.1f, 0.8f, 0.1f, 0.6f),
+                new Color(0.08f, 0.7f, 0.08f, 0.65f),
+                new Color(0.05f, 0.6f, 0.05f, 0.7f),
+                new Color(0.02f, 0.45f, 0.02f, 0.75f)
+            };
+            // Segment 4: Maximum Density (40+, vibrant green)
+            Color[] seg4 = new Color[] {
+                new Color(0.0f, 0.95f, 0.0f, 0.65f),
+                new Color(0.0f, 0.85f, 0.0f, 0.7f),
+                new Color(0.0f, 0.75f, 0.0f, 0.75f),
+                new Color(0.0f, 0.65f, 0.0f, 0.8f)
+            };
+
+            Color[][] allColors = new Color[][] { seg0, seg1, seg2, seg3, seg4 };
+
+            for (int seg = 0; seg < 5; seg++)
             {
-                float t = i / 100f;
-                Color color = Color.Lerp(new Color(0f, 0.6f, 0.1f, 0.3f), new Color(0.9f, 0.1f, 0.1f, 0.5f), t);
-                densityMats[i] = MaterialPool.MatFrom(BaseContent.WhiteTex, ShaderDatabase.MetaOverlay, color, 3510);
+                for (int band = 0; band < 4; band++)
+                {
+                    int index = seg * 4 + band;
+                    Color color = allColors[seg][band];
+                    
+                    densityMats[index] = null;
+                    if (ShaderDatabase.MetaOverlay != null && BaseContent.WhiteTex != null)
+                    {
+                        densityMats[index] = MaterialPool.MatFrom(BaseContent.WhiteTex, ShaderDatabase.MetaOverlay, color, 3510);
+                    }
+                    if (densityMats[index] == null)
+                    {
+                        densityMats[index] = SolidColorMaterials.SimpleSolidColorMaterial(color);
+                    }
+                    if (densityMats[index] == null)
+                    {
+                        densityMats[index] = BaseContent.WhiteMat;
+                    }
+                }
             }
         }
 
@@ -224,26 +281,56 @@ namespace RimSynapse.Factions
             return false;
         }
 
-        public override WorldLayer_MapMode WorldLayer => WorldLayer_PopulationDensity.Instance;
+        public override WorldLayer_MapMode WorldLayer => WorldLayer_MapMode_Terrain.Instance;
         public override bool CanToggleWater => false;
+
+        public override void DoPreRegenerate()
+        {
+            base.DoPreRegenerate();
+            CacheData();
+        }
 
         public MapMode_PopulationDensity() { }
         public MapMode_PopulationDensity(MapModeDef def) : base(def) { }
 
         public override Material GetMaterial(int tile)
         {
-            if (tilePopulations == null || tile >= tilePopulations.Length)
+            if (Find.WorldGrid == null || tile >= Find.WorldGrid.TilesCount)
             {
                 return BaseContent.ClearMat;
             }
 
-            int pop = tilePopulations[tile];
-            if (pop <= 0)
+            Tile tileData = Find.WorldGrid[tile];
+            if (tileData.WaterCovered)
             {
                 return BaseContent.ClearMat;
             }
 
-            int index = Mathf.Clamp(Mathf.RoundToInt(pop / 3f), 0, 100);
+            int pop = 0;
+            if (tilePopulations != null && tile < tilePopulations.Length)
+            {
+                pop = tilePopulations[tile];
+            }
+
+            int densitySegment = 0;
+            if (pop >= 40) densitySegment = 4;
+            else if (pop >= 30) densitySegment = 3;
+            else if (pop >= 20) densitySegment = 2;
+            else if (pop >= 10) densitySegment = 1;
+
+            float elevation = tileData.elevation;
+            int elevationBand = 0;
+            if (elevation >= 2200f) elevationBand = 3;
+            else if (elevation >= 1200f) elevationBand = 2;
+            else if (elevation >= 600f) elevationBand = 1;
+
+            int index = densitySegment * 4 + elevationBand;
+
+            if (densityMats == null || index >= densityMats.Length)
+            {
+                return BaseContent.ClearMat;
+            }
+
             return densityMats[index];
         }
 
@@ -259,29 +346,6 @@ namespace RimSynapse.Factions
             if (tilePopulations == null || tile >= tilePopulations.Length) return null;
             int pop = tilePopulations[tile];
             return pop > 0 ? $"Pawn dwellings: {pop}" : null;
-        }
-    }
-
-    public class WorldLayer_PopulationDensity : WorldLayer_MapMode
-    {
-        public static WorldLayer_PopulationDensity Instance { get; private set; }
-
-        public WorldLayer_PopulationDensity()
-        {
-            Instance = this;
-            Log.Warning("[RimSynapse-Factions] WorldLayer_PopulationDensity constructor called!");
-        }
-
-        public override System.Collections.IEnumerable Regenerate()
-        {
-            Log.Warning("[RimSynapse-Factions] WorldLayer_PopulationDensity.Regenerate() starting.");
-            MapMode_PopulationDensity.CacheData();
-            
-            foreach (var step in base.Regenerate())
-            {
-                yield return step;
-            }
-            Log.Warning("[RimSynapse-Factions] WorldLayer_PopulationDensity.Regenerate() completed.");
         }
     }
 }

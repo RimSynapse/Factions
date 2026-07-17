@@ -5,7 +5,7 @@
     <label>population density</label>
     <description>Visualizes the density of pawn dwellings across the planet.</description>
     <mapModeClass>RimSynapse.Factions.MapMode_PopulationDensity</mapModeClass>
-    <worldLayerClass>RimSynapse.Factions.WorldLayer_PopulationDensity</worldLayerClass>
+    <worldLayerClass>MapModeFramework.WorldLayer_MapMode_Terrain</worldLayerClass>
     <iconPath>UI/MapModes/Default</iconPath>
     <canCache>true</canCache>
     <includeWater>false</includeWater>
@@ -16,10 +16,15 @@
     <label>faction territories</label>
     <description>Visualizes national boundaries and zones of control.</description>
     <mapModeClass>RimSynapse.Factions.MapMode_FactionTerritory</mapModeClass>
-    <worldLayerClass>RimSynapse.Factions.WorldLayer_FactionTerritory</worldLayerClass>
+    <worldLayerClass>MapModeFramework.WorldLayer_MapMode_Region</worldLayerClass>
     <iconPath>UI/MapModes/Default</iconPath>
     <canCache>true</canCache>
     <includeWater>false</includeWater>
+    <RegionProperties>
+      <overrideSelector>true</overrideSelector>
+      <doBorders>true</doBorders>
+      <borderWidth>0.7</borderWidth>
+    </RegionProperties>
   </MapModeFramework.MapModeDef>
 
   <MapModeFramework.MapModeDef>
