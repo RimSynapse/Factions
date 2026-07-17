@@ -24,7 +24,8 @@ namespace RimSynapse.Factions
 
             // Subscribe to the Core narrative context hooks
             RimSynapse.SynapseLetterContextHook.OnGatherLetterContext += GatherFactionLetterContext;
-            
+            RimSynapse.SynapseCoreContext.OnGlobalKnowledgeBroadcast += HandleGlobalKnowledgeBroadcast;
+
             // Faction Leaders are generated via the Factions mod, 
             // but this feature is made significantly better when RimSynapse - Psychology is active!
             // It uses Psychology's memory tracking and trait systems.
@@ -66,6 +67,18 @@ namespace RimSynapse.Factions
                 {
                     contextBuilder.AppendLine($"- Faction History/Background Lore: {storyTracker.factionHistory}");
                 }
+            }
+        }
+
+
+        private static void HandleGlobalKnowledgeBroadcast(float wealthDelta, float strengthDelta)
+        {
+            if (wealthDelta == 0 && strengthDelta == 0) return;
+
+            var worldComp = Find.World?.GetComponent<SynapseFactionsWorldComponent>();
+            if (worldComp != null)
+            {
+                worldComp.ApplyGlobalKnowledgeDeltas(wealthDelta, strengthDelta);
             }
         }
     }

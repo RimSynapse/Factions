@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+
+  <HediffDef>
+    <defName>Synapse_PromisedRelease</defName>
+    <label>promised release</label>
+    <description>This prisoner struck a deal during interrogation. They expect to be released immediately. If their interaction mode is changed, or they are not released, they will harbor deep hatred.</description>
+    <hediffClass>RimSynapse.Factions.Hediffs.Hediff_PromisedRelease</hediffClass>
+    <isBad>false</isBad>
+    <stages>
+      <li>
+        <statOffsets>
+          <PrisonBreakMTBFactor>0.5</PrisonBreakMTBFactor>
+        </statOffsets>
+      </li>
+    </stages>
+  </HediffDef>
+
+  <ThoughtDef>
+    <defName>Synapse_BetrayedPromise</defName>
+    <thoughtClass>Thought_Memory</thoughtClass>
+    <durationDays>30</durationDays>
+    <stackLimit>1</stackLimit>
+    <stages>
+      <li>
+        <label>betrayed release promise</label>
+        <description>They promised to release me if I talked! They lied! I will never forgive them!</description>
+        <baseMoodEffect>-40</baseMoodEffect>
+      </li>
+    </stages>
+  </ThoughtDef>
+
+</Defs>

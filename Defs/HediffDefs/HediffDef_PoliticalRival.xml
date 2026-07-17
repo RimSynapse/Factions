@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <HediffDef>
+    <defName>Synapse_PoliticalRival</defName>
+    <label>political rival</label>
+    <description>This person was considered a political threat or rival within their home faction, and was likely sent on a suicide mission (such as a dangerous raid) to be eliminated. If recruited by another faction, their inside knowledge and connections make them an incredibly effective covert agent for sowing discord.</description>
+    <hediffClass>HediffWithComps</hediffClass>
+    <isBad>false</isBad>
+    <defaultLabelColor>(0.8, 0.8, 0.2)</defaultLabelColor>
+    <scenarioCanAdd>true</scenarioCanAdd>
+  </HediffDef>
+</Defs>

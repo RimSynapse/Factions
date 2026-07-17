@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <MainButtonDef>
+    <defName>FactBook</defName>
+    <label>Fact Book</label>
+    <description>Open the RimSynapse World Fact Book to view global demographics, ideologies, dialects, and diplomatic history.</description>
+    <tabWindowClass>RimSynapse.Factions.UI.MainTabWindow_FactBook</tabWindowClass>
+    <order>100</order>
+    <validWithoutMap>true</validWithoutMap>
+  </MainButtonDef>
+</Defs>

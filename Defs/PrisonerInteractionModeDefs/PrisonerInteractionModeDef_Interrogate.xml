@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <PrisonerInteractionModeDef>
+    <defName>Synapse_Interrogate</defName>
+    <label>interrogate</label>
+    <description>Wardens will interrogate this prisoner to uncover their faction's hidden agendas and political secrets. This can only be successfully performed if the prisoner's resistance has been broken.</description>
+    <listOrder>60</listOrder>
+    <allowOnWildMan>false</allowOnWildMan>
+  </PrisonerInteractionModeDef>
+
+  <JobDef>
+    <defName>Synapse_InterrogatePrisoner</defName>
+    <driverClass>RimSynapse.Factions.Jobs.JobDriver_Interrogate</driverClass>
+    <reportString>interrogating TargetA.</reportString>
+    <allowOpportunisticPrefix>true</allowOpportunisticPrefix>
+  </JobDef>
+
+  <WorkGiverDef>
+    <defName>Synapse_InterrogatePrisoner</defName>
+    <label>interrogate prisoners</label>
+    <giverClass>RimSynapse.Factions.Jobs.WorkGiver_Warden_Interrogate</giverClass>
+    <workType>Warden</workType>
+    <priorityInType>70</priorityInType>
+    <verb>interrogate</verb>
+    <gerund>interrogating</gerund>
+    <requiredCapacities>
+      <li>Manipulation</li>
+      <li>Talking</li>
+    </requiredCapacities>
+  </WorkGiverDef>
+</Defs>

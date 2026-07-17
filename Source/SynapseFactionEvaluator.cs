@@ -99,14 +99,94 @@ namespace RimSynapse.Factions
             // Leader name (just the name, no personality)
             string leaderName = faction.leader?.Name?.ToStringFull ?? "Unknown";
 
-            // Player relation
+            // Player relation and perceived stats
             int playerGoodwill = faction.PlayerGoodwill;
             string playerRelation = faction.PlayerRelationKind.ToString();
+            
+            float perceivedWealth = 0f;
+            float perceivedStrength = 0f;
+            var coreWorldComp = Find.World?.GetComponent<SynapseCoreWorldComponent>();
+            if (coreWorldComp != null)
+            {
+                var coreTracker = coreWorldComp.factionTrackers.Find(f => f.factionId == faction.GetUniqueLoadID());
+                if (coreTracker != null)
+                {
+                    perceivedWealth = coreTracker.perceivedWealth;
+                    perceivedStrength = coreTracker.perceivedStrength;
+                }
+            }
+
+            // Demographic and Faction state
+            float greedRatio = 0f;
+            int totalDwellings = 0;
+            int currentPop = 0;
+            int popCap = 0;
+            
+            float prodMultiplier = 1f;
+            float rawConsumptionMult = 1f;
+            float highTechClimb = 1f;
+            string demographicStatus = "Stable Range (90%-110%)";
+
+            var factionsWorldComp = Find.World?.GetComponent<SynapseFactionsWorldComponent>();
+            if (factionsWorldComp != null)
+            {
+                factionsWorldComp.AggregateFactionDemographics(faction.GetUniqueLoadID(), out totalDwellings, out currentPop);
+                popCap = totalDwellings * 2;
+                
+                if (popCap > 0)
+                {
+                    float popRatio = (float)currentPop / popCap;
+                    if (popRatio >= 0.90f && popRatio <= 1.10f)
+                    {
+                        demographicStatus = $"Stable ({popRatio:P0}). Operating at 100% standard production capacity.";
+                    }
+                    else if (popRatio < 0.90f)
+                    {
+                        float outOfRange = 0.90f - popRatio;
+                        int multiplierTier = UnityEngine.Mathf.FloorToInt(outOfRange / 0.10f) + 2;
+                        float loss = outOfRange * multiplierTier;
+                        prodMultiplier = UnityEngine.Mathf.Clamp01(1f - loss);
+                        
+                        demographicStatus = $"Underpopulated ({popRatio:P0}). Severe resource scarcity! Production capability reduced to {prodMultiplier:P0}.";
+                        if (prodMultiplier <= 0f) demographicStatus += " (TOTAL ECONOMIC COLLAPSE)";
+                    }
+                    else if (popRatio > 1.10f)
+                    {
+                        float outOfRange = popRatio - 1.10f;
+                        highTechClimb = 1f + (popRatio - 1f); 
+                        rawConsumptionMult = 1f + ((popRatio - 1f) * 2f); 
+                        
+                        demographicStatus = $"Overpopulated ({popRatio:P0}). High-tech production scaling at {highTechClimb:F1}x, but raw/pre-industrial resource consumption is burning at {rawConsumptionMult:F1}x! Severe depletion risk.";
+                    }
+                }
+
+                float normalizedStrength = (perceivedStrength * 50f) + 1f;
+                greedRatio = perceivedWealth / normalizedStrength;
+            }
 
             // Build the full inter-faction goodwill matrix
             var relationsBuilder = new StringBuilder();
             relationsBuilder.AppendLine("Inter-Faction Relations:");
-            relationsBuilder.AppendLine($"- Player Colony: {playerGoodwill} ({playerRelation})");
+            relationsBuilder.AppendLine($"- Player Colony: {playerGoodwill} ({playerRelation}). You currently perceive the player colony's wealth to be roughly {perceivedWealth:F0} silver, and their combat strength to be {perceivedStrength:F0}.");
+            relationsBuilder.AppendLine($"  => Calculated Greed Ratio: {greedRatio:F2} (Higher ratio means their wealth outpaces their defenses, making them a lucrative target.)");
+            
+            relationsBuilder.AppendLine();
+            relationsBuilder.AppendLine("Your Faction's Internal Demographics:");
+            relationsBuilder.AppendLine($"- Total Dwellings (Settlements/Homesteads): {totalDwellings}");
+            relationsBuilder.AppendLine($"- Current Population: {currentPop} / {popCap} Max Capacity");
+            relationsBuilder.AppendLine($"- Demographic Status: {demographicStatus}");
+            
+            if (ModsConfig.IdeologyActive && faction.ideos?.PrimaryIdeo != null)
+            {
+                var primaryIdeo = faction.ideos.PrimaryIdeo;
+                if (primaryIdeo.memes != null && primaryIdeo.memes.Count > 0)
+                {
+                    string memeNames = string.Join(", ", primaryIdeo.memes.Select(m => m.LabelCap));
+                    relationsBuilder.AppendLine($"- Ideology Memes: [{memeNames}]. These core tenets deeply drive their worldview, justify their diplomacy, and provide explicit reasons (Casus Belli) for conflict. Evaluate all interactions through this ideological lens.");
+                }
+            }
+            
+            relationsBuilder.AppendLine();
 
             foreach (var otherFaction in Find.FactionManager.AllFactionsVisible)
             {
@@ -142,7 +222,8 @@ Write 2-3 paragraphs of faction history in a narrative style. Cover:
 
 You MUST respond in valid JSON:
 {
-  ""Description"": ""Your 2-3 paragraph description here...""
+  ""Description"": ""Your 2-3 paragraph description here..."",
+  ""CurrentHiddenAgenda"": ""A short 1-sentence darker, hidden political agenda the faction is currently pursuing (e.g., sending expendable raids for population control, assassinating political rivals within, etc.)""
 }";
 
             string userMessage = $@"Faction: {factionName}
@@ -202,6 +283,27 @@ Generate their description.";
                         else
                         {
                             RimSynapse.SynapseLogger.Warn("factions", $"[RimSynapse-Factions] Empty description in response for {faction.Name}.");
+                        }
+                        
+                        if (parsed.TryGetValue("CurrentHiddenAgenda", out object agendaObj))
+                        {
+                            string agendaStr = agendaObj.ToString();
+                            if (!string.IsNullOrEmpty(agendaStr))
+                            {
+                                var log = new HiddenAgendaLog
+                                {
+                                    id = Guid.NewGuid().ToString(),
+                                    initiatingFactionId = faction.GetUniqueLoadID(),
+                                    targetFactionId = "Unknown", // Could be the player or internal
+                                    actionType = "Ongoing Operation",
+                                    publicReason = "General Faction Operations",
+                                    hiddenAgenda = agendaStr,
+                                    discoveredByPlayer = false,
+                                    tickGenerated = Find.TickManager.TicksGame
+                                };
+                                tracker.historicalAgendas.Add(log);
+                                RimSynapse.SynapseLogger.Message($"[RimSynapse-Factions] Generated hidden agenda for {faction.Name}.");
+                            }
                         }
                     }
                 }

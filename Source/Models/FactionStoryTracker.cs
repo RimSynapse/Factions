@@ -25,6 +25,17 @@ namespace RimSynapse.Factions.Models
         /// <summary>Absolute tick when the faction history was generated.</summary>
         public long historyGeneratedTick;
 
+        // --- Hidden Agendas ---
+        public List<HiddenAgendaLog> historicalAgendas = new List<HiddenAgendaLog>();
+
+        // --- Espionage & Fact Book ---
+        public string primaryDialect;
+        public Dictionary<string, float> xenotypeDemographics = new Dictionary<string, float>();
+        public float medianWealth;
+
+        // NOTE: Demographics and Macro Resources are now aggregated dynamically
+        // from SettlementStoryTrackers. They are not saved directly here anymore.
+
         public void ExposeData()
         {
             Scribe_Values.Look(ref factionId, "factionId");
@@ -42,6 +53,18 @@ namespace RimSynapse.Factions.Models
             Scribe_Values.Look(ref customNaturalGoodwillReason, "customNaturalGoodwillReason", null);
             Scribe_Values.Look(ref factionHistory, "factionHistory", null);
             Scribe_Values.Look(ref historyGeneratedTick, "historyGeneratedTick", 0L);
+
+            Scribe_Values.Look(ref primaryDialect, "primaryDialect", null);
+            Scribe_Collections.Look(ref xenotypeDemographics, "xenotypeDemographics", LookMode.Value, LookMode.Value);
+            Scribe_Values.Look(ref medianWealth, "medianWealth", 0f);
+            
+            Scribe_Collections.Look(ref historicalAgendas, "historicalAgendas", LookMode.Deep);
+
+            if (Scribe.mode == LoadSaveMode.PostLoadInit)
+            {
+                if (xenotypeDemographics == null) xenotypeDemographics = new Dictionary<string, float>();
+                if (historicalAgendas == null) historicalAgendas = new List<HiddenAgendaLog>();
+            }
         }
     }
 }

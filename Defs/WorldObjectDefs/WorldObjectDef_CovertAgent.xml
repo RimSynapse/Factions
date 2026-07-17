@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+  <WorldObjectDef>
+    <defName>Synapse_CovertAgent</defName>
+    <label>covert agent</label>
+    <description>A solitary figure traveling across the world map in disguise, attempting to infiltrate foreign settlements.</description>
+    <worldObjectClass>RimSynapse.Factions.WorldObjects.CovertAgent</worldObjectClass>
+    <texture>World/WorldObjects/TribalSettlement</texture> <!-- Placeholder texture -->
+    <expandingIcon>true</expandingIcon>
+    <expandingIconTexture>World/WorldObjects/TribalSettlement</expandingIconTexture>
+    <useDynamicIcon>true</useDynamicIcon>
+    <selectable>true</selectable>
+    <neverMultiSelect>true</neverMultiSelect>
+  </WorldObjectDef>
+</Defs>
