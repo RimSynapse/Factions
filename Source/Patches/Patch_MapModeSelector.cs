@@ -49,7 +49,24 @@ namespace RimSynapse.Factions.Patches
         {
             if (__result != null)
             {
-                __result = __result.Where(m => m.def.defName != "SynapsePopulationDensity" && m.def.defName != "SynapseFactionTerritory").ToList();
+                __result = __result.Where(m => m.def.defName != "SynapsePopulationDensity" && m.def.defName != "SynapseFactionTerritory" && m.def.defName != "SynapseGeographicProvinces").ToList();
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(MapModeComponent), "Reset")]
+    public static class Patch_MapModeComponent_Reset
+    {
+        [HarmonyPostfix]
+        public static void Postfix(MapModeComponent __instance)
+        {
+            if (__instance.mapModes != null)
+            {
+                var regionsMode = __instance.mapModes.FirstOrDefault(m => m.def?.defName == "SynapseGeographicProvinces");
+                if (regionsMode != null)
+                {
+                    __instance.currentMapMode = regionsMode;
+                }
             }
         }
     }

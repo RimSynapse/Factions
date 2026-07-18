@@ -14,3 +14,8 @@ When working with map overlays and the Map Mode Framework (`NozoMe.MapModeFramew
 3. **XML Def Registrations**:
    - **Rule**: All map modes must be registered using `<MapModeFramework.MapModeDef>` under `Defs/MapModeDefs/`.
    - **Rule**: NEVER use ampersands (`&` or `&amp;`) in ANY RimWorld files (including `About.xml` and descriptions). Always spell out the word "and".
+
+## Command & Terminal Execution Rules
+- **Rule**: Do not use PowerShell to save or persist variables. Instead, write a small `.bat` file, run it from the project directory, and clean it up when appropriate.
+- **Rule**: When launching RimWorld, use `Start-Process 'steam://run/294100'` to start the game. This ensures Steam integration is active and Workshop mods are loaded correctly.
+

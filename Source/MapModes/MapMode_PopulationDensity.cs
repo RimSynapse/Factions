@@ -127,6 +127,29 @@ namespace RimSynapse.Factions
             float[] tempPops = new float[tilesCount];
             float maxPop = 0f;
 
+            // Baseline random pawn placement in relatively hospitable environments (nomads, homesteads)
+            for (int i = 0; i < tilesCount; i++)
+            {
+                Tile tileData = Find.WorldGrid[i];
+                if (tileData.WaterCovered || tileData.hilliness == Hilliness.Impassable || tileData.PrimaryBiome == null || tileData.PrimaryBiome.impassable)
+                {
+                    continue;
+                }
+
+                if (tileData.temperature >= -12f && tileData.temperature <= 42f && tileData.PrimaryBiome.plantDensity > 0.15f)
+                {
+                    UnityEngine.Random.State state = UnityEngine.Random.state;
+                    UnityEngine.Random.InitState(i * 377 + 99);
+                    float roll = UnityEngine.Random.value;
+                    if (roll < 0.06f)
+                    {
+                        float basePop = UnityEngine.Random.Range(2f, 8f) * (tileData.PrimaryBiome.plantDensity + tileData.PrimaryBiome.forageability + 0.2f);
+                        tempPops[i] += basePop;
+                    }
+                    UnityEngine.Random.state = state;
+                }
+            }
+
             foreach (var settlement in settlements)
             {
                 int settlementPop = PopulationDensityUtility.GetSettlementPopulation(settlement);

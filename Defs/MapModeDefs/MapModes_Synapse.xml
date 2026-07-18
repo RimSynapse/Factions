@@ -13,13 +13,30 @@
 
   <MapModeFramework.MapModeDef>
     <defName>SynapseFactionTerritory</defName>
-    <label>faction territories</label>
-    <description>Visualizes national boundaries and zones of control.</description>
+    <label>faction domains</label>
+    <description>Visualizes national domains and zones of control.</description>
     <mapModeClass>RimSynapse.Factions.MapMode_FactionTerritory</mapModeClass>
     <worldLayerClass>MapModeFramework.WorldLayer_MapMode_Region</worldLayerClass>
     <iconPath>UI/MapModes/Default</iconPath>
     <canCache>true</canCache>
     <includeWater>false</includeWater>
+    <RegionProperties>
+      <overrideSelector>true</overrideSelector>
+      <doBorders>true</doBorders>
+      <borderWidth>0.7</borderWidth>
+    </RegionProperties>
+  </MapModeFramework.MapModeDef>
+
+  <MapModeFramework.MapModeDef>
+    <defName>SynapseGeographicProvinces</defName>
+    <label>regions</label>
+    <description>Visualizes the geographic regions and valleys on the world map.</description>
+    <mapModeClass>RimSynapse.Factions.MapMode_GeographicProvinces</mapModeClass>
+    <worldLayerClass>MapModeFramework.WorldLayer_MapMode_Region</worldLayerClass>
+    <iconPath>UI/MapModes/Default</iconPath>
+    <canCache>true</canCache>
+    <includeWater>false</includeWater>
+    <drawHills>true</drawHills>
     <RegionProperties>
       <overrideSelector>true</overrideSelector>
       <doBorders>true</doBorders>

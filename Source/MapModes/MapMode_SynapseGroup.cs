@@ -31,6 +31,12 @@ namespace RimSynapse.Factions
                 options.Add(new FloatMenuOption(territoryMode.def.LabelCap, () => MapModeComponent.Instance.RequestMapModeSwitch(territoryMode)));
             }
 
+            var regionMode = MapModeComponent.Instance.mapModes.FirstOrDefault(m => m.def.defName == "SynapseGeographicProvinces");
+            if (regionMode != null)
+            {
+                options.Add(new FloatMenuOption(regionMode.def.LabelCap, () => MapModeComponent.Instance.RequestMapModeSwitch(regionMode)));
+            }
+
             if (options.Any())
             {
                 Find.WindowStack.Add(new FloatMenu(options));

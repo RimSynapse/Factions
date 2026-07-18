@@ -8,10 +8,12 @@ namespace RimSynapse.Factions
     public class RimSynapseFactionsMod : Mod
     {
         public static RimSynapse.SynapseModHandle ModHandle;
+        public static FactionPlacementSettings Settings;
         
         public RimSynapseFactionsMod(ModContentPack content) : base(content)
         {
             RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Initializing Mod...", "factions");
+            Settings = GetSettings<FactionPlacementSettings>();
             
             var harmony = new Harmony("rimsynapse.factions");
             harmony.PatchAll();
