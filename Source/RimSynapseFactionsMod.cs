@@ -8,12 +8,10 @@ namespace RimSynapse.Factions
     public class RimSynapseFactionsMod : Mod
     {
         public static RimSynapse.SynapseModHandle ModHandle;
-        public static FactionPlacementSettings Settings;
         
         public RimSynapseFactionsMod(ModContentPack content) : base(content)
         {
             RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Initializing Mod...", "factions");
-            Settings = GetSettings<FactionPlacementSettings>();
             
             Harmony.DEBUG = true;
             var harmony = new Harmony("rimsynapse.factions");
@@ -45,9 +43,6 @@ namespace RimSynapse.Factions
             
             ModHandle = new RimSynapse.SynapseModHandle("rimsynapse.factions", "RimSynapse Factions");
             
-            // Register the population calculation delegate to RimSynapse-Core
-            RimSynapse.SynapseCoreWorldComponent.GetPopulationDensityDelegate = PopulationDensityUtility.GetPopulationAtTile;
-
             // Subscribe to the Core narrative context hooks
             RimSynapse.SynapseLetterContextHook.OnGatherLetterContext += GatherFactionLetterContext;
             RimSynapse.SynapseCoreContext.OnGlobalKnowledgeBroadcast += HandleGlobalKnowledgeBroadcast;

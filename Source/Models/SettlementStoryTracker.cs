@@ -3,6 +3,7 @@ using System.Linq;
 using RimWorld;
 using RimWorld.Planet;
 using Verse;
+using RimSynapse.RegionsAndTerritories;
 
 namespace RimSynapse.Factions.Models
 {
@@ -118,21 +119,4 @@ namespace RimSynapse.Factions.Models
                 _activeCrises = new List<SettlementCrisis>();
             }
         }
-    }
-
-    public class SettlementCrisis : IExposable
-    {
-        public string crisisType; // e.g., "Blight"
-        public float currentSeverity;
-        public int ticksRemaining; // or days elapsed
-        public int daysElapsed;
-
-        public void ExposeData()
-        {
-            Scribe_Values.Look(ref crisisType, "crisisType");
-            Scribe_Values.Look(ref currentSeverity, "currentSeverity", 0f);
-            Scribe_Values.Look(ref ticksRemaining, "ticksRemaining", 0);
-            Scribe_Values.Look(ref daysElapsed, "daysElapsed", 0);
-        }
-    }
-}
+    }}

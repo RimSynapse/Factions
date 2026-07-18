@@ -5,6 +5,7 @@ using RimWorld;
 using Verse;
 using Verse.AI;
 using RimSynapse.Factions.Models;
+using RimSynapse.RegionsAndTerritories;
 
 namespace RimSynapse.Factions.Patches
 {

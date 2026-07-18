@@ -5,6 +5,7 @@ using Verse;
 using RimWorld;
 using Newtonsoft.Json;
 using RimSynapse;
+using RimSynapse.RegionsAndTerritories;
 
 
 namespace RimSynapse.Factions
@@ -190,7 +191,7 @@ namespace RimSynapse.Factions
                 return JsonConvert.SerializeObject(new { error = "Settlement is already suffering from this crisis." });
             }
 
-            tracker.activeCrises.Add(new Models.SettlementCrisis
+            tracker.activeCrises.Add(new SettlementCrisis
             {
                 crisisType = crisisType,
                 currentSeverity = 0f,

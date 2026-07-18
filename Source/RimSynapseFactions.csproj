@@ -45,9 +45,9 @@
             <Private>false</Private>
         </Reference>
         
-        <!-- Reference Map Mode Framework -->
-        <Reference Include="MapModeFramework">
-            <HintPath>$(SteamWorkshopPath)\3296654393\1.6\Assemblies\MapModeFramework.dll</HintPath>
+        <!-- Reference Regions and Territories Mod -->
+        <Reference Include="RimSynapseRegionsAndTerritories">
+            <HintPath>..\..\Regions-and-Territories\Assemblies\RimSynapseRegionsAndTerritories.dll</HintPath>
             <Private>false</Private>
         </Reference>
         

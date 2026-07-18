@@ -17,15 +17,14 @@
             <steamWorkshopUrl>steam://url/CommunityFilePage/3760829776</steamWorkshopUrl>
         </li>
         <li>
-            <packageId>NozoMe.MapModeFramework</packageId>
-            <displayName>Map Mode Framework</displayName>
-            <downloadUrl>https://github.com/nozomemu/MapModeFramework/releases/latest</downloadUrl>
-            <steamWorkshopUrl>steam://url/CommunityFilePage/3296654393</steamWorkshopUrl>
+            <packageId>RimSynapse.RegionsAndTerritories</packageId>
+            <displayName>RimSynapse - Regions and Territories</displayName>
+            <downloadUrl>https://github.com/RimSynapse/Regions-and-Territories/releases/latest</downloadUrl>
         </li>
     </modDependencies>
     <loadAfter>
         <li>RimSynapse.Core</li>
-        <li>NozoMe.MapModeFramework</li>
+        <li>RimSynapse.RegionsAndTerritories</li>
         <li>Ludeon.RimWorld.Royalty</li>
         <li>Ludeon.RimWorld.Ideology</li>
         <li>Ludeon.RimWorld.Biotech</li>
@@ -52,5 +51,6 @@ v0.4.0
 
 --- Requirements ---
 - RimSynapse - Core (Must be loaded before this mod)
+- RimSynapse - Regions and Territories (Must be loaded before this mod)
     </description>
 </ModMetaData>

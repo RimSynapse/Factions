@@ -4,6 +4,7 @@ using RimWorld;
 using RimWorld.Planet;
 using Verse;
 using RimSynapse.Factions.Models;
+using RimSynapse.RegionsAndTerritories;
 
 namespace RimSynapse.Factions
 {

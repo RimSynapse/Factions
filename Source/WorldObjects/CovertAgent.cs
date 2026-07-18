@@ -4,6 +4,7 @@ using Verse;
 using UnityEngine;
 using RimWorld;
 using RimSynapse.Factions.Models;
+using RimSynapse.RegionsAndTerritories;
 
 namespace RimSynapse.Factions.WorldObjects
 {
