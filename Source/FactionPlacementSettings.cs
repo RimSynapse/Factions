@@ -15,10 +15,11 @@ namespace RimSynapse.Factions
         public float huntingWeight = 1.0f;
         public float marginWeight = 0.0f;
         public IntRange baseCountRange = new IntRange(5, 15);
+        public int placementOrder = 3;
 
         public FactionPlacementProfile() { }
 
-        public FactionPlacementProfile(string defName, float mineral, float nutrition, float forage, float grazing, float hunting, float margin, int minB, int maxB)
+        public FactionPlacementProfile(string defName, float mineral, float nutrition, float forage, float grazing, float hunting, float margin, int minB, int maxB, int order)
         {
             this.factionDefName = defName;
             this.mineralWeight = mineral;
@@ -28,6 +29,7 @@ namespace RimSynapse.Factions
             this.huntingWeight = hunting;
             this.marginWeight = margin;
             this.baseCountRange = new IntRange(minB, maxB);
+            this.placementOrder = order;
         }
 
         public void ExposeData()
@@ -40,6 +42,7 @@ namespace RimSynapse.Factions
             Scribe_Values.Look(ref huntingWeight, "huntingWeight", 1.0f);
             Scribe_Values.Look(ref marginWeight, "marginWeight", 0.0f);
             Scribe_Values.Look(ref baseCountRange, "baseCountRange", new IntRange(5, 15));
+            Scribe_Values.Look(ref placementOrder, "placementOrder", 3);
         }
     }
 
@@ -128,6 +131,24 @@ namespace RimSynapse.Factions
                 margin = 0.1f;
             }
 
+            int order = 3;
+            if (def.defName == "Empire")
+            {
+                order = 2;
+            }
+            else if (def.techLevel == TechLevel.Industrial)
+            {
+                order = 1;
+            }
+            else if (def.techLevel >= TechLevel.Spacer)
+            {
+                order = 3;
+            }
+            else
+            {
+                order = 4;
+            }
+
             if (def.hostileToFactionlessHumanlikes || def.permanentEnemy)
             {
                 margin = 2.5f;
@@ -135,7 +156,7 @@ namespace RimSynapse.Factions
                 maxB = 8;
             }
 
-            return new FactionPlacementProfile(def.defName, mineral, nutrition, forage, grazing, hunting, margin, minB, maxB);
+            return new FactionPlacementProfile(def.defName, mineral, nutrition, forage, grazing, hunting, margin, minB, maxB, order);
         }
     }
 }

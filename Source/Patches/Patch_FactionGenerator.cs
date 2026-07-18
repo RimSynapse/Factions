@@ -15,30 +15,53 @@ namespace RimSynapse.Factions.Patches
         [HarmonyPrefix]
         public static bool Prefix(PlanetLayer layer, List<FactionDef> factions)
         {
-            RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Custom Faction Generation and Placement solver starting...", "factions");
+            Log.Message("[RimSynapse-Factions] Custom Faction Generation and Placement solver starting...");
 
-            if (Find.World == null || Find.World.info == null || Find.WorldGrid == null || factions == null)
+            World world = Find.World ?? Current.CreatingWorld;
+            if (world == null || world.info == null || world.grid == null)
             {
-                RimSynapse.SynapseLogger.Warning("[RimSynapse-Factions] Find.World, World.info, WorldGrid, or factions list is null! Falling back to vanilla generator.", "factions");
+                Log.Warning("[RimSynapse-Factions] World, World.info, or World.grid is null! Falling back to vanilla generator.");
                 return true;
             }
 
-            var regionManager = Find.World.GetComponent<SynapseRegionManager>();
+            if (factions == null)
+            {
+                factions = new List<FactionDef>();
+                foreach (var def in DefDatabase<FactionDef>.AllDefsListForReading)
+                {
+                    if (!def.isPlayer && !def.hidden)
+                    {
+                        factions.Add(def);
+                    }
+                }
+            }
+
+            FactionManager factionManager = world.factionManager;
+            if (factionManager == null)
+            {
+                Log.Warning("[RimSynapse-Factions] FactionManager is null! Falling back to vanilla generator.");
+                return true;
+            }
+
+            WorldGrid worldGrid = world.grid;
+            WorldObjectsHolder worldObjects = world.worldObjects;
+
+            var regionManager = world.GetComponent<SynapseRegionManager>();
             if (regionManager == null)
             {
-                RimSynapse.SynapseLogger.Warning("[RimSynapse-Factions] SynapseRegionManager is null! Falling back to vanilla generator.", "factions");
+                Log.Warning("[RimSynapse-Factions] SynapseRegionManager is null! Falling back to vanilla generator.");
                 return true;
             }
 
             regionManager.GenerateProvinces();
 
-            float coverage = Find.World.info.planetCoverage;
+            float coverage = world.info.planetCoverage;
             
             int landTilesCount = 0;
-            int totalTiles = Find.WorldGrid.TilesCount;
+            int totalTiles = worldGrid.TilesCount;
             for (int i = 0; i < totalTiles; i++)
             {
-                if (!Find.WorldGrid[i].WaterCovered)
+                if (!worldGrid[i].WaterCovered)
                 {
                     landTilesCount++;
                 }
@@ -66,32 +89,50 @@ namespace RimSynapse.Factions.Patches
                 }
             }
 
-            List<Faction> generatedFactions = new List<Faction>();
-            foreach (var def in finalDefs)
+            WorldObjectDef origSettlementDef = null;
+            System.Reflection.FieldInfo settlementField = typeof(PlanetLayerDef).GetField("settlementWorldObjectDef", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (layer != null && layer.Def != null && settlementField != null)
             {
-                Faction faction = FactionGenerator.NewGeneratedFaction(new FactionGeneratorParms(def, default(IdeoGenerationParms), true));
-                if (faction != null)
-                {
-                    Find.FactionManager.Add(faction);
-                    generatedFactions.Add(faction);
-                }
+                origSettlementDef = (WorldObjectDef)settlementField.GetValue(layer.Def);
+                settlementField.SetValue(layer.Def, null);
             }
 
-            foreach (FactionDef def in DefDatabase<FactionDef>.AllDefs)
+            try
             {
-                if (def.hidden && Find.FactionManager.FirstFactionOfDef(def) == null)
+                List<Faction> generatedFactions = new List<Faction>();
+                foreach (var def in finalDefs)
                 {
                     Faction faction = FactionGenerator.NewGeneratedFaction(new FactionGeneratorParms(def, default(IdeoGenerationParms), true));
                     if (faction != null)
                     {
-                        Find.FactionManager.Add(faction);
+                        factionManager.Add(faction);
+                        generatedFactions.Add(faction);
+                    }
+                }
+
+                foreach (FactionDef def in DefDatabase<FactionDef>.AllDefs)
+                {
+                    if (def.hidden && factionManager.FirstFactionOfDef(def) == null)
+                    {
+                        Faction faction = FactionGenerator.NewGeneratedFaction(new FactionGeneratorParms(def, default(IdeoGenerationParms), true));
+                        if (faction != null)
+                        {
+                            factionManager.Add(faction);
+                        }
                     }
                 }
             }
-
-            foreach (var f1 in Find.FactionManager.AllFactions)
+            finally
             {
-                foreach (var f2 in Find.FactionManager.AllFactions)
+                if (layer != null && layer.Def != null && settlementField != null)
+                {
+                    settlementField.SetValue(layer.Def, origSettlementDef);
+                }
+            }
+
+            foreach (var f1 in factionManager.AllFactions)
+            {
+                foreach (var f2 in factionManager.AllFactions)
                 {
                     if (f1 != f2 && f1.RelationWith(f2, true) == null)
                     {
@@ -101,27 +142,41 @@ namespace RimSynapse.Factions.Patches
             }
 
             List<int> placedBases = new List<int>();
-            var allNPCFactions = Find.FactionManager.AllFactions.Where(f => !f.IsPlayer && !f.Hidden).ToList();
+            var allNPCFactions = factionManager.AllFactions.Where(f => !f.IsPlayer && !f.def.hidden).ToList();
 
             var allProvinces = regionManager.Provinces;
             if (!allProvinces.Any())
             {
-                RimSynapse.SynapseLogger.Warning("[RimSynapse-Factions] No provinces generated! Falling back to vanilla generator.", "factions");
+                Log.Warning("[RimSynapse-Factions] No provinces generated! Falling back to vanilla generator.");
                 return true;
             }
 
-            foreach (var faction in allNPCFactions)
+            // Global tracking of provinces that already contain a settlement
+            HashSet<GeographicProvince> occupiedProvinces = new HashSet<GeographicProvince>();
+
+            // Sort NPC Factions: Turn Order is specified by profile.placementOrder (customizable in mod settings).
+            var sortedNPCFactions = allNPCFactions
+                .OrderBy(f => GetCategoryPriority(f))
+                .ThenBy(f => (Faction.OfPlayer != null && f.HostileTo(Faction.OfPlayer)) ? 1 : 0)
+                .ToList();
+
+            foreach (var faction in sortedNPCFactions)
             {
                 var profile = FactionPlacementSettings.GetProfile(faction.def);
                 if (profile == null) continue;
 
-                int baseCount = Mathf.RoundToInt(profile.baseCountRange.RandomInRange * (coverage / 0.3f));
-                baseCount = Mathf.Clamp(baseCount, 2, 40);
+                // Base counts based on tech level scaled by coverage (Industrial ~20, Spacer ~3, Tribal ~5)
+                int baseTarget = 5;
+                if (faction.def.techLevel == TechLevel.Industrial) baseTarget = 20;
+                else if (faction.def.techLevel >= TechLevel.Spacer) baseTarget = 3;
+
+                int baseCount = Mathf.RoundToInt(baseTarget * (coverage / 0.3f));
+                baseCount = Mathf.Clamp(baseCount, 1, 40);
 
                 Dictionary<int, float> tileScores = new Dictionary<int, float>();
                 for (int t = 0; t < totalTiles; t++)
                 {
-                    Tile tileData = Find.WorldGrid[t];
+                    Tile tileData = worldGrid[t];
                     if (tileData.WaterCovered || tileData.hilliness == Hilliness.Impassable || (tileData.PrimaryBiome != null && tileData.PrimaryBiome.impassable))
                     {
                         tileScores[t] = -9999f;
@@ -174,92 +229,91 @@ namespace RimSynapse.Factions.Patches
 
                 List<GeographicProvince> factionProvinces = new List<GeographicProvince>();
                 List<int> factionBases = new List<int>();
-                bool isLargeNation = faction.def.techLevel >= TechLevel.Industrial;
+
+                // Define hard adjacency requirement: friendly and neutral factions (excluding the Empire)
+                bool isFriendlyOrNeutral = (Faction.OfPlayer != null) ? !faction.HostileTo(Faction.OfPlayer) : !faction.def.permanentEnemy;
+                bool hasHardAdjacency = isFriendlyOrNeutral && (faction.def.defName != "Empire");
 
                 for (int b = 0; b < baseCount; b++)
                 {
                     GeographicProvince chosenProvince = null;
+                    string factionId = faction.GetUniqueLoadID();
 
-                    if (b == 0)
+                    // Pre-calculate properties for all provinces
+                    var allCandidates = allProvinces
+                        .Select(p => {
+                            float suitability = provinceScores.ContainsKey(p) ? provinceScores[p] : -9999f;
+                            if (suitability <= -9999f) return new { Province = p, Score = -9999f, ThisFactionCount = 999, GlobalCount = 999, IsAdjacent = false, Dist = 9999f, SharedBorders = 0, BarrierCount = 0 };
+
+                            int thisFactionCount = p.owningFactionIds.Count(id => id == factionId);
+                            int globalCount = p.owningFactionIds.Count;
+                            bool isAdjacent = factionProvinces.Any() && IsProvinceAdjacentToAny(p, factionProvinces, regionManager, worldGrid);
+
+                            float minAllyDist = 0f;
+                            if (factionProvinces.Any())
+                            {
+                                minAllyDist = 9999f;
+                                foreach (var ownP in factionProvinces)
+                                {
+                                    float dist = GetProvinceDistance(p, ownP, worldGrid);
+                                    if (dist < minAllyDist) minAllyDist = dist;
+                                }
+                            }
+
+                            int sharedBorders = factionProvinces.Any() ? GetSharedBorderCount(p, factionProvinces, regionManager, worldGrid) : 0;
+                            int barrierCount = GetBarrierBorderCount(p, worldGrid);
+
+                            return new { Province = p, Score = suitability, ThisFactionCount = thisFactionCount, GlobalCount = globalCount, IsAdjacent = isAdjacent, Dist = minAllyDist, SharedBorders = sharedBorders, BarrierCount = barrierCount };
+                        })
+                        .Where(x => x.Score > -9999f);
+
+                    // For factions with hard adjacency requirement, subsequent bases MUST be adjacent (if any adjacent valid provinces exist)
+                    if (b > 0 && hasHardAdjacency && factionProvinces.Any())
                     {
-                        chosenProvince = provinceScores
-                            .Where(kv => kv.Value > -9999f && (!kv.Key.owningFactionIds.Any()))
-                            .OrderByDescending(kv => kv.Value)
-                            .Select(kv => kv.Key)
-                            .FirstOrDefault();
-
-                        if (chosenProvince == null)
+                        var adjacentOnly = allCandidates.Where(x => x.IsAdjacent).ToList();
+                        if (adjacentOnly.Any())
                         {
-                            chosenProvince = provinceScores
-                                .Where(kv => kv.Value > -9999f)
-                                .OrderByDescending(kv => kv.Value)
-                                .Select(kv => kv.Key)
-                                .FirstOrDefault();
+                            allCandidates = adjacentOnly;
                         }
+                    }
+
+                    // Weighting compact perimeter vs resource optimization based on size threshold (5 provinces)
+                    bool prioritizePerimeter = (factionProvinces.Count > 5);
+
+                    var sortedCandidates = allCandidates
+                        .OrderBy(x => x.ThisFactionCount)
+                        .ThenBy(x => x.GlobalCount);
+
+                    if (prioritizePerimeter)
+                    {
+                        // Prioritize compact borders (high shared borders) and natural barriers/mountains first to keep territory from snaking
+                        sortedCandidates = sortedCandidates
+                            .ThenByDescending(x => x.SharedBorders)
+                            .ThenByDescending(x => x.BarrierCount)
+                            .ThenBy(x => x.Dist)
+                            .ThenByDescending(x => x.Score);
                     }
                     else
                     {
-                        if (!isLargeNation && factionProvinces.Any())
-                        {
-                            chosenProvince = factionProvinces[0];
-                        }
-                        else if (factionProvinces.Any())
-                        {
-                            var adjacentProvinces = allProvinces
-                                .Where(p => p.tiles.Any() && !factionProvinces.Contains(p) && IsProvinceAdjacentToAny(p, factionProvinces, regionManager))
-                                .ToList();
-
-                            if (adjacentProvinces.Any())
-                            {
-                                chosenProvince = adjacentProvinces
-                                    .Select(p => {
-                                        float suitability = provinceScores.ContainsKey(p) ? provinceScores[p] : -9999f;
-                                        float minAllyDist = 9999f;
-                                        foreach (var ownP in factionProvinces)
-                                        {
-                                            float dist = GetProvinceDistance(p, ownP);
-                                            if (dist < minAllyDist) minAllyDist = dist;
-                                        }
-                                        float score = suitability - 0.4f * minAllyDist;
-                                        return new KeyValuePair<GeographicProvince, float>(p, score);
-                                    })
-                                    .Where(kv => kv.Value > -9999f)
-                                    .OrderByDescending(kv => kv.Value)
-                                    .Select(kv => kv.Key)
-                                    .FirstOrDefault();
-                            }
-
-                            if (chosenProvince == null)
-                            {
-                                chosenProvince = allProvinces
-                                    .Where(p => p.tiles.Any() && !factionProvinces.Contains(p))
-                                    .Select(p => {
-                                        float suitability = provinceScores.ContainsKey(p) ? provinceScores[p] : -9999f;
-                                        float minAllyDist = 9999f;
-                                        foreach (var ownP in factionProvinces)
-                                        {
-                                            float dist = GetProvinceDistance(p, ownP);
-                                            if (dist < minAllyDist) minAllyDist = dist;
-                                        }
-                                        float score = suitability - 0.4f * minAllyDist;
-                                        return new KeyValuePair<GeographicProvince, float>(p, score);
-                                    })
-                                    .Where(kv => kv.Value > -9999f)
-                                    .OrderByDescending(kv => kv.Value)
-                                    .Select(kv => kv.Key)
-                                    .FirstOrDefault();
-                            }
-                        }
+                        // Prioritize resources/suitability first, while still favoring barrier anchoring
+                        sortedCandidates = sortedCandidates
+                            .ThenByDescending(x => x.Score)
+                            .ThenByDescending(x => x.BarrierCount)
+                            .ThenByDescending(x => x.IsAdjacent ? 1 : 0)
+                            .ThenBy(x => x.Dist)
+                            .ThenByDescending(x => x.SharedBorders);
                     }
 
-                    if (chosenProvince == null && factionProvinces.Any())
+                    var candidatesList = sortedCandidates.ToList();
+
+                    if (candidatesList.Any())
                     {
-                        chosenProvince = factionProvinces[0];
+                        chosenProvince = candidatesList[0].Province;
                     }
 
                     if (chosenProvince != null)
                     {
-                        int chosenTile = FindBestTileInProvince(chosenProvince, factionBases, placedBases, tileScores);
+                        int chosenTile = FindBestTileInProvince(chosenProvince, factionBases, placedBases, tileScores, worldGrid);
 
                         if (chosenTile != -1)
                         {
@@ -267,7 +321,7 @@ namespace RimSynapse.Factions.Patches
                             settlement.Tile = chosenTile;
                             settlement.SetFaction(faction);
                             settlement.Name = SettlementNameGenerator.GenerateSettlementName(settlement);
-                            Find.WorldObjects.Add(settlement);
+                            worldObjects.Add(settlement);
 
                             factionBases.Add(chosenTile);
                             placedBases.Add(chosenTile);
@@ -275,26 +329,29 @@ namespace RimSynapse.Factions.Patches
                             if (!factionProvinces.Contains(chosenProvince))
                             {
                                 factionProvinces.Add(chosenProvince);
-                                string fid = faction.GetUniqueLoadID();
-                                if (!chosenProvince.owningFactionIds.Contains(fid))
+                                if (!chosenProvince.owningFactionIds.Contains(factionId))
                                 {
-                                    chosenProvince.owningFactionIds.Add(fid);
+                                    chosenProvince.owningFactionIds.Add(factionId);
                                 }
                             }
+                            occupiedProvinces.Add(chosenProvince);
                         }
                     }
                 }
 
-                RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Placed {factionBases.Count} bases across {factionProvinces.Count} provinces for faction: {faction.Name}", "factions");
+                Log.Message($"[RimSynapse-Factions] Placed {factionBases.Count} bases across {factionProvinces.Count} provinces for faction: {faction.Name}");
             }
 
             RoadGeneratorHelper.GenerateRoadsBetweenBases();
 
-            RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Custom Faction Generation and Placement completed successfully.", "factions");
+            // Refresh the population density cache since new settlements have been placed
+            PopulationDensityUtility.MarkCacheDirty();
+
+            Log.Message("[RimSynapse-Factions] Custom Faction Generation and Placement completed successfully.");
             return false;
         }
 
-        private static int FindBestTileInProvince(GeographicProvince province, List<int> sameFactionBases, List<int> allPlacedBases, Dictionary<int, float> tileScores)
+        private static int FindBestTileInProvince(GeographicProvince province, List<int> sameFactionBases, List<int> allPlacedBases, Dictionary<int, float> tileScores, WorldGrid worldGrid)
         {
             var candidateTiles = province.tiles
                 .Where(t => tileScores.ContainsKey(t) && tileScores[t] > -9999f && !allPlacedBases.Contains(t))
@@ -309,7 +366,7 @@ namespace RimSynapse.Factions.Patches
                 foreach (var otherBase in allPlacedBases)
                 {
                     if (sameFactionBases.Contains(otherBase)) continue;
-                    float dist = Find.WorldGrid.ApproxDistanceInTiles(tile, otherBase);
+                    float dist = worldGrid.ApproxDistanceInTiles(tile, otherBase);
                     if (dist < 8f)
                     {
                         tooCloseToRival = true;
@@ -325,7 +382,7 @@ namespace RimSynapse.Factions.Patches
                 foreach (var otherBase in allPlacedBases)
                 {
                     if (sameFactionBases.Contains(otherBase)) continue;
-                    float dist = Find.WorldGrid.ApproxDistanceInTiles(tile, otherBase);
+                    float dist = worldGrid.ApproxDistanceInTiles(tile, otherBase);
                     if (dist < 4f)
                     {
                         tooCloseToRival = true;
@@ -338,13 +395,13 @@ namespace RimSynapse.Factions.Patches
             return candidateTiles[0];
         }
 
-        private static bool IsProvinceAdjacentToAny(GeographicProvince p, List<GeographicProvince> existing, SynapseRegionManager manager)
+        private static bool IsProvinceAdjacentToAny(GeographicProvince p, List<GeographicProvince> existing, SynapseRegionManager manager, WorldGrid worldGrid)
         {
             List<RimWorld.Planet.PlanetTile> neighbors = new List<RimWorld.Planet.PlanetTile>();
             foreach (int tile in p.tiles)
             {
                 neighbors.Clear();
-                Find.WorldGrid.GetTileNeighbors(tile, neighbors);
+                worldGrid.GetTileNeighbors(tile, neighbors);
                 foreach (var n in neighbors)
                 {
                     int neighborProvinceId = manager.GetProvinceId(n.tileId);
@@ -357,10 +414,87 @@ namespace RimSynapse.Factions.Patches
             return false;
         }
 
-        private static float GetProvinceDistance(GeographicProvince p1, GeographicProvince p2)
+        private static float GetProvinceDistance(GeographicProvince p1, GeographicProvince p2, WorldGrid worldGrid)
         {
             if (p1.tiles.Count == 0 || p2.tiles.Count == 0) return 9999f;
-            return Find.WorldGrid.ApproxDistanceInTiles(p1.tiles[0], p2.tiles[0]);
+            return worldGrid.ApproxDistanceInTiles(p1.tiles[0], p2.tiles[0]);
+        }
+
+        private static int GetCategoryPriority(Faction faction)
+        {
+            var profile = FactionPlacementSettings.GetProfile(faction.def);
+            if (profile != null)
+            {
+                return profile.placementOrder;
+            }
+            if (faction.def.defName == "Empire") return 2;
+            if (faction.def.techLevel == TechLevel.Industrial) return 1;
+            if (faction.def.techLevel >= TechLevel.Spacer) return 3;
+            return 4; // Tribal
+        }
+
+        private static int GetSharedBorderCount(GeographicProvince p, List<GeographicProvince> existing, SynapseRegionManager manager, WorldGrid worldGrid)
+        {
+            HashSet<int> sharedAdjacentProvinces = new HashSet<int>();
+            List<RimWorld.Planet.PlanetTile> neighbors = new List<RimWorld.Planet.PlanetTile>();
+            foreach (int tile in p.tiles)
+            {
+                neighbors.Clear();
+                worldGrid.GetTileNeighbors(tile, neighbors);
+                foreach (var n in neighbors)
+                {
+                    int neighborProvinceId = manager.GetProvinceId(n.tileId);
+                    if (neighborProvinceId != -1 && neighborProvinceId != p.id)
+                    {
+                        var matchingProv = existing.FirstOrDefault(ep => ep.id == neighborProvinceId);
+                        if (matchingProv != null)
+                        {
+                            sharedAdjacentProvinces.Add(matchingProv.id);
+                        }
+                    }
+                }
+            }
+            return sharedAdjacentProvinces.Count;
+        }
+
+        private static int GetBarrierBorderCount(GeographicProvince p, WorldGrid worldGrid)
+        {
+            int barrierCount = 0;
+            List<RimWorld.Planet.PlanetTile> neighbors = new List<RimWorld.Planet.PlanetTile>();
+            foreach (int tile in p.tiles)
+            {
+                neighbors.Clear();
+                worldGrid.GetTileNeighbors(tile, neighbors);
+                foreach (var n in neighbors)
+                {
+                    Tile nTile = worldGrid[n.tileId];
+                    if (nTile.hilliness == Hilliness.Impassable || nTile.WaterCovered || (nTile.PrimaryBiome != null && nTile.PrimaryBiome.impassable))
+                    {
+                        barrierCount++;
+                    }
+                }
+            }
+            return barrierCount;
+        }
+    }
+
+    [HarmonyPatch(typeof(WorldGenerator), "GenerateWorld")]
+    public static class Patch_WorldGenerator_GenerateWorld
+    {
+        [HarmonyPrefix]
+        public static void Prefix()
+        {
+            Log.Message("[RimSynapse-Factions] WorldGenerator.GenerateWorld PREFIX is executing!");
+        }
+    }
+
+    [HarmonyPatch(typeof(WorldGenStep_Factions), "GenerateFresh")]
+    public static class Patch_WorldGenStep_Factions_GenerateFresh
+    {
+        [HarmonyPrefix]
+        public static void Prefix()
+        {
+            Log.Message("[RimSynapse-Factions] WorldGenStep_Factions.GenerateFresh PREFIX is executing!");
         }
     }
 }

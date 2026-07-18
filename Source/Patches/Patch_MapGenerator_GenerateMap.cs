@@ -14,7 +14,7 @@ namespace RimSynapse.Factions.Patches
             int pop = PopulationDensityUtility.GetPopulationAtTile(__result.Tile);
             if (pop > 0)
             {
-                DwellingStructureGenerator.Generate(__result);
+                DwellingStructureGenerator.Generate(__result, pop);
             }
         }
     }

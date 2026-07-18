@@ -85,7 +85,7 @@ namespace RimSynapse.Factions
             Widgets.Label(estRect, $"Estimated Land Tiles: <color=cyan>{landTiles}</color> (at {Mathf.RoundToInt(coverage * 100f)}% coverage) | Expected Region Count: <color=green>{estMin} - {estMax}</color> (Avg Size: {avgSize:F0} tiles)");
 
             Rect outRect = new Rect(0f, 160f, inRect.width, inRect.height - 215f);
-            Rect viewRect = new Rect(0f, 0f, inRect.width - 25f, activeFactions.Count * 230f);
+            Rect viewRect = new Rect(0f, 0f, inRect.width - 25f, activeFactions.Count * 265f);
 
             Widgets.BeginScrollView(outRect, ref scrollPosition, viewRect);
             float curY = 0f;
@@ -94,7 +94,7 @@ namespace RimSynapse.Factions
             {
                 var profile = FactionPlacementSettings.GetProfile(def);
 
-                Rect boxRect = new Rect(0f, curY, viewRect.width, 220f);
+                Rect boxRect = new Rect(0f, curY, viewRect.width, 255f);
                 Widgets.DrawMenuSection(boxRect);
 
                 Rect titleRect = new Rect(10f, curY + 10f, boxRect.width - 20f, 25f);
@@ -111,6 +111,7 @@ namespace RimSynapse.Factions
                     profile.huntingWeight = defaultProfile.huntingWeight;
                     profile.marginWeight = defaultProfile.marginWeight;
                     profile.baseCountRange = defaultProfile.baseCountRange;
+                    profile.placementOrder = defaultProfile.placementOrder;
                 }
 
                 // Left column sliders
@@ -128,10 +129,15 @@ namespace RimSynapse.Factions
                 // Bases counts
                 Rect basesRect = new Rect(10f, curY + 180f, boxRect.width - 20f, 24f);
                 Widgets.Label(new Rect(basesRect.x, basesRect.y, 250f, 24f), $"Settlement Range: {profile.baseCountRange.min} - {profile.baseCountRange.max}");
-                
                 Widgets.IntRange(new Rect(basesRect.x + 260f, basesRect.y, basesRect.width - 270f, 24f), def.GetHashCode(), ref profile.baseCountRange, 1, 50, null, 0);
 
-                curY += 230f;
+                // Placement Order
+                Rect orderRect = new Rect(10f, curY + 215f, boxRect.width - 20f, 24f);
+                Widgets.Label(new Rect(orderRect.x, orderRect.y, 250f, 24f), $"Placement Turn Order (Priority): {profile.placementOrder}");
+                float tempOrder = Widgets.HorizontalSlider(new Rect(orderRect.x + 260f, orderRect.y, orderRect.width - 270f, 18f), (float)profile.placementOrder, 1f, 10f, false, null, null, null, 1f);
+                profile.placementOrder = Mathf.RoundToInt(tempOrder);
+
+                curY += 265f;
             }
 
             Widgets.EndScrollView();

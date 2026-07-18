@@ -385,12 +385,29 @@ namespace RimSynapse.Factions
                     }
                 }
 
-                if (waterBody.Count < 25)
+                // A water body is absorbed if it is an inland lake (contains no ocean biome tiles)
+                bool isOcean = false;
+                foreach (int tileId in waterBody)
                 {
+                    var biome = Find.WorldGrid[tileId].PrimaryBiome;
+                    if (biome != null && (biome.defName.ToLower().Contains("ocean") || biome.LabelCap.ToString().ToLower().Contains("ocean")))
+                    {
+                        isOcean = true;
+                        break;
+                    }
+                }
+
+                if (!isOcean)
+                {
+                    RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Absorbing inland water body/lake of size {waterBody.Count}.", "factions");
                     foreach (int tileId in waterBody)
                     {
                         unresolvedRiverTiles.Add(tileId);
                     }
+                }
+                else
+                {
+                    RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Skipping ocean water body of size {waterBody.Count}.", "factions");
                 }
             }
 
@@ -431,6 +448,7 @@ namespace RimSynapse.Factions
                     if (bestProvinceId != -1)
                     {
                         resolvedRiverTiles[t] = bestProvinceId;
+                        tileToProvinceId[t] = bestProvinceId;
                         // Also update the mapped type so that subsequent iterations can see it
                         provinceTypeMap[t] = provinceTypeMap[bestProvinceId];
                     }
@@ -455,6 +473,7 @@ namespace RimSynapse.Factions
                                 if (provinceTypeMap.TryGetValue(pid, out var type) && type != ProvinceType.River)
                                 {
                                     resolvedRiverTiles[t] = pid;
+                                    tileToProvinceId[t] = pid;
                                     break;
                                 }
                             }
@@ -754,9 +773,39 @@ namespace RimSynapse.Factions
         {
             RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] MergeTinyDomains started. Initial region count: {provinces.Count}", "factions");
             List<RimWorld.Planet.PlanetTile> neighbors = new List<RimWorld.Planet.PlanetTile>();
-            int totalMerged = 0;
-            int pass = 0;
+            // Cache province types
+            var provinceTypeMap = provinces.ToDictionary(p => p.id, p => p.provinceType);
 
+            // Pass 0: Small Island Absorption (islands < 5 tiles, closest landmass < 3 tiles away)
+            List<GeographicProvince> islandsToRemove = new List<GeographicProvince>();
+            var initialProvinceMap = provinces.ToDictionary(p => p.id, p => p);
+            int totalMerged = 0;
+
+            foreach (var p in provinces)
+            {
+                if (p.provinceType == ProvinceType.Land && p.tiles.Count > 0 && p.tiles.Count < 5)
+                {
+                    int targetPid = FindClosestLandProvinceWithinDistance(p, 2, provinceTypeMap);
+                    if (targetPid != -1 && initialProvinceMap.TryGetValue(targetPid, out var targetProv))
+                    {
+                        RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Merging small island province {p.id} of size {p.tiles.Count} into closest land province {targetProv.id} (distance < 3).", "factions");
+                        foreach (int tileId in p.tiles)
+                        {
+                            targetProv.tiles.Add(tileId);
+                            tileToProvinceId[tileId] = targetProv.id;
+                        }
+                        islandsToRemove.Add(p);
+                        totalMerged++;
+                    }
+                }
+            }
+
+            foreach (var p in islandsToRemove)
+            {
+                provinces.Remove(p);
+            }
+
+            int pass = 0;
             while (pass < 10) // Safety limit of 10 passes
             {
                 pass++;
@@ -773,7 +822,12 @@ namespace RimSynapse.Factions
 
                     int pSize = p.tiles.Count;
                     bool isFeature = p.provinceType == ProvinceType.River || p.provinceType == ProvinceType.Lake || p.provinceType == ProvinceType.MountainRange;
-                    int threshold = isFeature ? 30 : minNoFeatures;
+                    int baseThreshold = isFeature ? 30 : minNoFeatures;
+
+                    // Scale threshold dynamically based on tile resource density
+                    float resWeight = GetResourceWeight(p);
+                    float scale = Mathf.Clamp(1.5f / Mathf.Max(resWeight, 0.1f), 1f, 5f);
+                    int threshold = Mathf.RoundToInt(baseThreshold * scale);
 
                     if (pSize >= threshold) continue;
 
@@ -842,6 +896,73 @@ namespace RimSynapse.Factions
             }
 
             RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] MergeTinyDomains finished. Merged {totalMerged} regions in {pass} passes. Final region count: {provinces.Count}", "factions");
+        }
+
+        private float GetResourceWeight(GeographicProvince p)
+        {
+            if (p.tiles == null || p.tiles.Count == 0 || Find.WorldGrid == null) return 1.0f;
+            float total = 0f;
+            foreach (int tileId in p.tiles)
+            {
+                Tile t = Find.WorldGrid[tileId];
+                var b = t.PrimaryBiome;
+                if (b != null)
+                {
+                    total += b.plantDensity + b.forageability + b.TreeDensity;
+                }
+                if (t.hilliness == Hilliness.SmallHills) total += 0.5f;
+                else if (t.hilliness == Hilliness.LargeHills) total += 1.0f;
+                else if (t.hilliness == Hilliness.Mountainous) total += 1.5f;
+            }
+            return total / p.tiles.Count;
+        }
+
+        private int FindClosestLandProvinceWithinDistance(GeographicProvince island, int maxDistance, Dictionary<int, ProvinceType> provinceTypeMap)
+        {
+            Queue<KeyValuePair<int, int>> queue = new Queue<KeyValuePair<int, int>>();
+            HashSet<int> visited = new HashSet<int>();
+
+            foreach (int t in island.tiles)
+            {
+                queue.Enqueue(new KeyValuePair<int, int>(t, 0));
+                visited.Add(t);
+            }
+
+            List<RimWorld.Planet.PlanetTile> neighbors = new List<RimWorld.Planet.PlanetTile>();
+
+            while (queue.Count > 0)
+            {
+                var currentKvp = queue.Dequeue();
+                int currentTile = currentKvp.Key;
+                int currentDepth = currentKvp.Value;
+
+                if (currentDepth > maxDistance) continue;
+
+                neighbors.Clear();
+                Find.WorldGrid.GetTileNeighbors(currentTile, neighbors);
+                foreach (var n in neighbors)
+                {
+                    int nid = n.tileId;
+                    if (visited.Contains(nid)) continue;
+                    visited.Add(nid);
+
+                    int pid = tileToProvinceId[nid];
+                    if (pid != -1 && pid != island.id)
+                    {
+                        if (provinceTypeMap.TryGetValue(pid, out var type) && type == ProvinceType.Land)
+                        {
+                            return pid;
+                        }
+                    }
+
+                    if (Find.WorldGrid[nid].WaterCovered && currentDepth < maxDistance)
+                    {
+                        queue.Enqueue(new KeyValuePair<int, int>(nid, currentDepth + 1));
+                    }
+                }
+            }
+
+            return -1;
         }
 
         private void ResolveContextualNames()

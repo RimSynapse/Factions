@@ -15,8 +15,14 @@ namespace RimSynapse.Factions
             RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Initializing Mod...", "factions");
             Settings = GetSettings<FactionPlacementSettings>();
             
+            Harmony.DEBUG = true;
             var harmony = new Harmony("rimsynapse.factions");
             harmony.PatchAll();
+
+            foreach (var m in harmony.GetPatchedMethods())
+            {
+                RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Successfully patched method: {m.DeclaringType.FullName}.{m.Name}", "factions");
+            }
 
             // Dynamically patch all concrete subclasses of PawnsArrivalModeWorker since patching the abstract class directly fails
             var postfixMethod = typeof(RimSynapse.Factions.Patches.PawnsArrivalModeWorker_Arrive_Patch).GetMethod("Postfix");
