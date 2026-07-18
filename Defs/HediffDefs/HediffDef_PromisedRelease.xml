@@ -7,13 +7,7 @@
     <description>This prisoner struck a deal during interrogation. They expect to be released immediately. If their interaction mode is changed, or they are not released, they will harbor deep hatred.</description>
     <hediffClass>RimSynapse.Factions.Hediffs.Hediff_PromisedRelease</hediffClass>
     <isBad>false</isBad>
-    <stages>
-      <li>
-        <statOffsets>
-          <PrisonBreakMTBFactor>0.5</PrisonBreakMTBFactor>
-        </statOffsets>
-      </li>
-    </stages>
+
   </HediffDef>
 
   <ThoughtDef>

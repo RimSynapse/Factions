@@ -4,6 +4,7 @@ using RimWorld;
 using RimWorld.Planet;
 using Verse;
 using RimSynapse.Factions.Models;
+using RimSynapse.RegionsAndTerritories;
 
 namespace RimSynapse.Factions
 {
@@ -72,44 +73,56 @@ namespace RimSynapse.Factions
                     factionId = settlement.Faction?.GetUniqueLoadID()
                 };
 
-                // Seed initial geographic demographics
-                tracker.totalDwellings = 125;
-                tracker.currentPopulation = 250;
-                
-                // Read Tile and Biome data
-                var tile = Find.WorldGrid[settlement.Tile];
-                var biome = settlement.Biome;
-
-                float techLevelMult = 1f;
-                bool isSpacer = false;
-                bool isIndustrial = false;
-
-                if (settlement.Faction != null)
-                {
-                    isSpacer = settlement.Faction.def.techLevel >= TechLevel.Spacer;
-                    isIndustrial = settlement.Faction.def.techLevel == TechLevel.Industrial;
-                    techLevelMult = (float)settlement.Faction.def.techLevel;
-                }
-
-                // Nutrition
-                if (isSpacer) 
-                    tracker.rawNutrition = 1000f; // Hydroponics
-                else if (isIndustrial)
-                    tracker.rawNutrition = biome.plantDensity * 500f;
-                else
-                    tracker.rawNutrition = biome.forageability * 500f;
-
-                // Biomass
-                tracker.biomass = biome.TreeDensity * 500f;
-
-                // Minerals
-                float hillMult = 0.5f; // Flat
-                if (tile.hilliness == Hilliness.SmallHills) hillMult = 1.0f;
-                if (tile.hilliness == Hilliness.LargeHills) hillMult = 2.0f;
-                if (tile.hilliness == Hilliness.Mountainous) hillMult = 3.0f;
-                tracker.minerals = hillMult * 500f;
-
                 settlementTrackers.Add(tracker);
+
+                var regionManager = Find.World?.GetComponent<SynapseRegionManager>();
+                var province = regionManager?.GetProvinceForTile(settlement.Tile);
+                if (province != null)
+                {
+                    if (!province.initializedEconomics)
+                    {
+                        province.InitializeProvinceEconomics();
+                    }
+                }
+                else
+                {
+                    // Fallback local initialization if no province partition exists for this tile
+                    tracker.totalDwellings = 125;
+                    tracker.currentPopulation = 250;
+                    
+                    // Read Tile and Biome data
+                    var tile = Find.WorldGrid[settlement.Tile];
+                    var biome = settlement.Biome;
+
+                    float techLevelMult = 1f;
+                    bool isSpacer = false;
+                    bool isIndustrial = false;
+
+                    if (settlement.Faction != null)
+                    {
+                        isSpacer = settlement.Faction.def.techLevel >= TechLevel.Spacer;
+                        isIndustrial = settlement.Faction.def.techLevel == TechLevel.Industrial;
+                        techLevelMult = (float)settlement.Faction.def.techLevel;
+                    }
+
+                    // Nutrition
+                    if (isSpacer) 
+                        tracker.rawNutrition = 1000f; // Hydroponics
+                    else if (isIndustrial)
+                        tracker.rawNutrition = biome.plantDensity * 500f;
+                    else
+                        tracker.rawNutrition = biome.forageability * 500f;
+
+                    // Biomass
+                    tracker.biomass = biome.TreeDensity * 500f;
+
+                    // Minerals
+                    float hillMult = 0.5f; // Flat
+                    if (tile.hilliness == Hilliness.SmallHills) hillMult = 1.0f;
+                    if (tile.hilliness == Hilliness.LargeHills) hillMult = 2.0f;
+                    if (tile.hilliness == Hilliness.Mountainous) hillMult = 3.0f;
+                    tracker.minerals = hillMult * 500f;
+                }
             }
             return tracker;
         }

@@ -7,7 +7,6 @@ using RimSynapse.Factions.Models;
 
 namespace RimSynapse.Factions.Patches
 {
-    [HarmonyPatch(typeof(PawnsArrivalModeWorker), "Arrive")]
     public static class PawnsArrivalModeWorker_Arrive_Patch
     {
         public static void Postfix(List<Pawn> pawns, IncidentParms parms)

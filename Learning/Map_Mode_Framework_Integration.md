@@ -46,5 +46,5 @@ The Map Mode Framework executes `PrepareMeshes(...)` asynchronously on a backgro
 - **WorldLayer**: Handles the mesh generation using submeshes and material assignments.
 
 Refer to the source files for complete reference implementations:
-- [MapMode_PopulationDensity.cs](file:///d:/github/RimSynapse-Factions/Source/MapModes/MapMode_PopulationDensity.cs)
-- [MapMode_FactionTerritory.cs](file:///d:/github/RimSynapse-Factions/Source/MapModes/MapMode_FactionTerritory.cs)
+- [MapMode_PopulationDensity.cs](file:///d:/github/rimsynapse/Factions/Source/MapModes/MapMode_PopulationDensity.cs)
+- [MapMode_FactionTerritory.cs](file:///d:/github/rimsynapse/Factions/Source/MapModes/MapMode_FactionTerritory.cs)

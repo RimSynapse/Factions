@@ -20,13 +20,19 @@ namespace RimSynapse.Factions.LeaderGeneration
 
             Pawn targetLeader = null;
             Faction targetFaction = null;
-            foreach (var faction in Find.FactionManager.AllFactions)
+            RimSynapse.SynapseLogger.Message($"[RimSynapse-Factions] Starting TriggerLeaderBackstoryGeneration. Factions count: {Find.FactionManager.AllFactionsListForReading.Count}");
+            foreach (var faction in Find.FactionManager.AllFactionsListForReading)
             {
-                if (faction == null || faction.IsPlayer || faction.Hidden) continue;
+                if (faction == null) continue;
+                RimSynapse.SynapseLogger.Message($"[RimSynapse-Factions] Checking faction: {faction.Name} (def: {faction.def?.defName}, player: {faction.IsPlayer}, hidden: {faction.Hidden})");
+                if (faction.IsPlayer || (faction.def != null && faction.def.hidden)) continue;
+                
+                RimSynapse.SynapseLogger.Message($"[RimSynapse-Factions] Faction {faction.Name} leader: {faction.leader?.LabelCap ?? "null"} (humanlike: {faction.leader?.RaceProps?.Humanlike}, dead: {faction.leader?.Dead})");
                 if (faction.leader == null || !faction.leader.RaceProps.Humanlike) continue;
                 if (faction.leader.Dead) continue;
 
                 var coreComp = faction.leader.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
+                RimSynapse.SynapseLogger.Message($"[RimSynapse-Factions] Faction {faction.Name} leader coreComp: {coreComp != null}");
                 if (coreComp == null) continue;
 
                 if (NeedsBackstory(faction.leader))
@@ -37,10 +43,27 @@ namespace RimSynapse.Factions.LeaderGeneration
                 }
             }
 
-            if (targetLeader == null || targetFaction == null) return false;
+            if (targetLeader == null || targetFaction == null)
+            {
+                RimSynapse.SynapseLogger.Message($"[RimSynapse-Factions] No eligible target leader found. targetLeader null: {targetLeader == null}, targetFaction null: {targetFaction == null}");
+                return false;
+            }
 
             var leaderCoreComp = targetLeader.TryGetComp<RimSynapse.Comps.SynapseCorePawnComp>();
             if (leaderCoreComp == null) return false;
+
+            // Step 1 of 3-step pipeline: Generate Faction History first if missing
+            var stWorldComp = Find.World?.GetComponent<SynapseFactionsWorldComponent>();
+            if (stWorldComp != null)
+            {
+                var storyTracker = stWorldComp.GetOrCreateStoryTracker(targetFaction.GetUniqueLoadID());
+                if (string.IsNullOrEmpty(storyTracker.factionHistory))
+                {
+                    SynapseFactionEvaluator.EvaluateFaction(targetFaction);
+                    RimSynapse.SynapseLogger.Message($"[RimSynapse-Factions] Triggered Faction History generation for {targetFaction.Name} before leader backstory.");
+                    return true;
+                }
+            }
 
             string factionHistoryContext = GetFactionHistoryContext(targetFaction);
             GenerateLeaderChildhoodMemory(targetLeader, targetFaction, leaderCoreComp, factionHistoryContext);
@@ -49,38 +72,15 @@ namespace RimSynapse.Factions.LeaderGeneration
 
         private static string GetFactionHistoryContext(Faction faction)
         {
-            if (!SynapseCore.IsModLoaded("RimSynapseStoryTeller") || faction == null) return "";
-
-            try
+            if (faction == null) return "";
+            var stWorldComp = Find.World?.GetComponent<SynapseFactionsWorldComponent>();
+            if (stWorldComp != null)
             {
-                foreach (var comp in Find.World.components)
+                var storyTracker = stWorldComp.factionStoryTrackers.Find(t => t.factionId == faction.GetUniqueLoadID());
+                if (storyTracker != null && !string.IsNullOrEmpty(storyTracker.factionHistory))
                 {
-                    if (comp.GetType().Name == "SynapseStoryTellerWorldComponent")
-                    {
-                        var method = comp.GetType().GetMethod("GetOrCreateStoryTracker");
-                        if (method != null)
-                        {
-                            var tracker = method.Invoke(comp, new object[] { faction.GetUniqueLoadID() });
-                            if (tracker != null)
-                            {
-                                var historyField = tracker.GetType().GetField("factionHistory");
-                                if (historyField != null)
-                                {
-                                    string history = historyField.GetValue(tracker) as string;
-                                    if (!string.IsNullOrEmpty(history))
-                                    {
-                                        return $"\nFaction History (already established — your memories must be consistent with this):\n\"{history}\"";
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                    }
+                    return $"\nFaction History (already established — your memories must be consistent with this):\n\"{storyTracker.factionHistory}\"";
                 }
-            }
-            catch (Exception ex)
-            {
-                RimSynapse.SynapseLogger.Warn("factions", $"[RimSynapse-Factions] Could not read faction history from StoryTeller: {ex.Message}");
             }
             return "";
         }
@@ -111,25 +111,38 @@ namespace RimSynapse.Factions.LeaderGeneration
 
         private static bool NeedsBackstory(Pawn leader)
         {
-            var psychAssembly = LoadedModManager.RunningModsListForReading.FirstOrDefault(m => m.PackageIdPlayerFacing.ToLower() == "rimsynapse.psychology")?.assemblies.loadedAssemblies.FirstOrDefault(a => a.GetName().Name == "RimSynapsePsychology");
+            RimSynapse.SynapseLogger.Message($"[RimSynapse-Factions] NeedsBackstory check for {leader.Name.ToStringShort}");
+            var psychAssembly = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "RimSynapsePsychology");
             if (psychAssembly != null)
             {
-                var queryType = psychAssembly.GetType("RimSynapse.Psychology.API.SynapsePsychologyQuery");
+                var queryType = psychAssembly.GetType("RimSynapse.Psychology.API.SynapsePsychology");
                 var method = queryType?.GetMethod("NeedsBackstory", BindingFlags.Public | BindingFlags.Static);
                 if (method != null)
                 {
-                    return (bool)method.Invoke(null, new object[] { leader });
+                    bool res = (bool)method.Invoke(null, new object[] { leader });
+                    RimSynapse.SynapseLogger.Message($"[RimSynapse-Factions] NeedsBackstory method call returned: {res}");
+                    return res;
                 }
+                else
+                {
+                    RimSynapse.SynapseLogger.Warning("[RimSynapse-Factions] NeedsBackstory method not found on SynapsePsychology.");
+                }
+            }
+            else
+            {
+                RimSynapse.SynapseLogger.Warning("[RimSynapse-Factions] RimSynapsePsychology assembly not found in AppDomain.");
             }
             return false;
         }
 
         private static void MarkBackstoryCreated(Pawn leader)
         {
-            var psychAssembly = LoadedModManager.RunningModsListForReading.FirstOrDefault(m => m.PackageIdPlayerFacing.ToLower() == "rimsynapse.psychology")?.assemblies.loadedAssemblies.FirstOrDefault(a => a.GetName().Name == "RimSynapsePsychology");
+            var psychAssembly = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "RimSynapsePsychology");
             if (psychAssembly != null)
             {
-                var queryType = psychAssembly.GetType("RimSynapse.Psychology.API.SynapsePsychologyQuery");
+                var queryType = psychAssembly.GetType("RimSynapse.Psychology.API.SynapsePsychology");
                 var method = queryType?.GetMethod("MarkBackstoryCreated", BindingFlags.Public | BindingFlags.Static);
                 if (method != null)
                 {

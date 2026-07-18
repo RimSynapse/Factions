@@ -48,7 +48,7 @@ namespace RimSynapse.Factions
         /// </summary>
         public static bool EvaluateFaction(Faction faction)
         {
-            if (faction == null || faction.IsPlayer || faction.Hidden) return false;
+            if (faction == null || faction.IsPlayer || (faction.def != null && faction.def.hidden)) return false;
 
             var stWorldComp = Find.World.GetComponent<SynapseFactionsWorldComponent>();
             if (stWorldComp == null) return false;
@@ -254,12 +254,18 @@ Generate their description.";
 
         private static void HandleFactionHistoryResult(Faction faction, FactionStoryTracker tracker, ChatResult result)
         {
+            RimSynapse.SynapseLogger.Message($"[RimSynapse-Factions] HandleFactionHistoryResult callback: success={result.success}, contentLength={(result.content != null ? result.content.Length : 0)}");
             if (result.success)
             {
                 try
                 {
+                    RimSynapse.SynapseLogger.Message($"[RimSynapse-Factions] Raw LLM content: {result.content}");
                     string json = JsonHelper.ExtractJson(result.content);
-                    if (json == null) { RimSynapse.SynapseLogger.Warn("factions", "[RimSynapse-Factions] No JSON found in faction history response."); return; }
+                    if (json == null)
+                    {
+                        RimSynapse.SynapseLogger.Warning("[RimSynapse-Factions] No JSON found in faction history response.");
+                        return;
+                    }
 
                     var parsed = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
                     if (parsed != null)

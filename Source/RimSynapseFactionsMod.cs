@@ -1,5 +1,6 @@
 using HarmonyLib;
 using Verse;
+using RimWorld;
 using System.Linq;
 
 namespace RimSynapse.Factions
@@ -12,16 +13,36 @@ namespace RimSynapse.Factions
         {
             RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Initializing Mod...", "factions");
             
+            Harmony.DEBUG = true;
             var harmony = new Harmony("rimsynapse.factions");
             harmony.PatchAll();
+
+            foreach (var m in harmony.GetPatchedMethods())
+            {
+                RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Successfully patched method: {m.DeclaringType.FullName}.{m.Name}", "factions");
+            }
+
+            // Dynamically patch all concrete subclasses of PawnsArrivalModeWorker since patching the abstract class directly fails
+            var postfixMethod = typeof(RimSynapse.Factions.Patches.PawnsArrivalModeWorker_Arrive_Patch).GetMethod("Postfix");
+            if (postfixMethod != null)
+            {
+                foreach (var type in typeof(PawnsArrivalModeWorker).Assembly.GetTypes())
+                {
+                    if (typeof(PawnsArrivalModeWorker).IsAssignableFrom(type) && !type.IsAbstract)
+                    {
+                        var targetMethod = type.GetMethod("Arrive", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                        if (targetMethod != null)
+                        {
+                            harmony.Patch(targetMethod, postfix: new HarmonyMethod(postfixMethod));
+                        }
+                    }
+                }
+            }
             
             RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Harmony Patches applied.", "factions");
             
             ModHandle = new RimSynapse.SynapseModHandle("rimsynapse.factions", "RimSynapse Factions");
             
-            // Register the population calculation delegate to RimSynapse-Core
-            RimSynapse.SynapseCoreWorldComponent.GetPopulationDensityDelegate = PopulationDensityUtility.GetPopulationAtTile;
-
             // Subscribe to the Core narrative context hooks
             RimSynapse.SynapseLetterContextHook.OnGatherLetterContext += GatherFactionLetterContext;
             RimSynapse.SynapseCoreContext.OnGlobalKnowledgeBroadcast += HandleGlobalKnowledgeBroadcast;

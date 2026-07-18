@@ -1,0 +1,6 @@
+d:\github\rimsynapse\Factions\Assemblies\RimSynapseFactions.dll
+d:\github\rimsynapse\Factions\Source\obj\Release\RimSynapseFactions.csproj.AssemblyReference.cache
+d:\github\rimsynapse\Factions\Source\obj\Release\RimSynapseFactions.GeneratedMSBuildEditorConfig.editorconfig
+d:\github\rimsynapse\Factions\Source\obj\Release\RimSynapseFactions.csproj.CoreCompileInputs.cache
+d:\github\rimsynapse\Factions\Source\obj\Release\RimSynap.1850D655.Up2Date
+d:\github\rimsynapse\Factions\Source\obj\Release\RimSynapseFactions.dll
