@@ -92,9 +92,36 @@ namespace RimSynapse.Factions
             }
         }
 
+        private bool HasRiver(int tileId)
+        {
+            if (Find.WorldGrid == null) return false;
+            List<RimWorld.Planet.PlanetTile> neighbors = new List<RimWorld.Planet.PlanetTile>();
+            Find.WorldGrid.GetTileNeighbors(tileId, neighbors);
+            foreach (var n in neighbors)
+            {
+                if (Find.WorldGrid.GetRiverDef(tileId, n.tileId) != null || Find.WorldGrid.GetRiverDef(n.tileId, tileId) != null)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private BiomeDef GetPrimaryBiome(List<int> chunk)
+        {
+            if (chunk == null || chunk.Count == 0) return null;
+            return chunk
+                .Select(t => Find.WorldGrid[t].PrimaryBiome)
+                .Where(b => b != null)
+                .GroupBy(b => b)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key)
+                .FirstOrDefault();
+        }
+
         public void GenerateProvinces()
         {
-            RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Generating Geographic Domains...", "factions");
+            RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Generating Geographic Domains (Boundary-First Priority)...", "factions");
 
             if (Find.WorldGrid == null) return;
             int totalTiles = Find.WorldGrid.TilesCount;
@@ -105,39 +132,183 @@ namespace RimSynapse.Factions
             }
 
             provinces.Clear();
-            
-            RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Starting GetBiomeChunks...", "factions");
-            List<List<int>> biomeChunks = GetBiomeChunks();
-            RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Finished GetBiomeChunks. Found {biomeChunks.Count} chunks.", "factions");
-            
             int provinceIdCounter = 0;
 
-            // Pass 1: Build initial partitions based on biome size and natural features presence
+            // Pre-calculate river neighbor count for all tiles
+            int[] riverNeighborCount = new int[totalTiles];
+            List<RimWorld.Planet.PlanetTile> tempNeighbors = new List<RimWorld.Planet.PlanetTile>();
+            for (int i = 0; i < totalTiles; i++)
+            {
+                if (tileToProvinceId[i] != -1 || !HasRiver(i)) continue;
+
+                int count = 0;
+                tempNeighbors.Clear();
+                Find.WorldGrid.GetTileNeighbors(i, tempNeighbors);
+                foreach (var n in tempNeighbors)
+                {
+                    if (HasRiver(n.tileId) && (Find.WorldGrid.GetRiverDef(i, n.tileId) != null || Find.WorldGrid.GetRiverDef(n.tileId, i) != null))
+                    {
+                        count++;
+                    }
+                }
+                riverNeighborCount[i] = count;
+            }
+
+            // Phase 2: Rivers (tiles with river def, split at forks)
+            bool[] riverVisited = new bool[totalTiles];
+
+            // Pass A: Seed only from non-fork tiles (degree < 3) to build segments outwards
+            for (int i = 0; i < totalTiles; i++)
+            {
+                if (tileToProvinceId[i] != -1 || riverVisited[i] || !HasRiver(i)) continue;
+                if (riverNeighborCount[i] >= 3) continue; // Skip forks in first seed pass
+
+                List<int> riverSegment = new List<int>();
+                Queue<int> queue = new Queue<int>();
+                queue.Enqueue(i);
+                riverVisited[i] = true;
+
+                List<RimWorld.Planet.PlanetTile> neighbors = new List<RimWorld.Planet.PlanetTile>();
+                while (queue.Count > 0)
+                {
+                    int current = queue.Dequeue();
+                    riverSegment.Add(current);
+
+                    // If this tile is a fork, do not propagate past it (act as boundary point)
+                    if (riverNeighborCount[current] >= 3) continue;
+
+                    neighbors.Clear();
+                    Find.WorldGrid.GetTileNeighbors(current, neighbors);
+                    foreach (var n in neighbors)
+                    {
+                        int nid = n.tileId;
+                        if (tileToProvinceId[nid] == -1 && !riverVisited[nid] && HasRiver(nid) && 
+                            (Find.WorldGrid.GetRiverDef(current, nid) != null || Find.WorldGrid.GetRiverDef(nid, current) != null))
+                        {
+                            riverVisited[nid] = true;
+                            queue.Enqueue(nid);
+                        }
+                    }
+                }
+
+                if (riverSegment.Count > 0)
+                {
+                    GeographicProvince domain = new GeographicProvince(provinceIdCounter);
+                    domain.tiles = riverSegment.ToList();
+                    domain.provinceType = ProvinceType.River;
+                    domain.primaryBiome = GetPrimaryBiome(riverSegment);
+                    domain.name = GenerateProvinceName(provinceIdCounter, domain.primaryBiome, domain.provinceType);
+
+                    foreach (int tileId in riverSegment)
+                    {
+                        tileToProvinceId[tileId] = provinceIdCounter;
+                    }
+                    provinces.Add(domain);
+                    provinceIdCounter++;
+                }
+            }
+
+            // Pass B: Collect any remaining/isolated fork tiles
+            for (int i = 0; i < totalTiles; i++)
+            {
+                if (tileToProvinceId[i] != -1 || riverVisited[i] || !HasRiver(i)) continue;
+
+                List<int> riverSegment = new List<int>();
+                Queue<int> queue = new Queue<int>();
+                queue.Enqueue(i);
+                riverVisited[i] = true;
+
+                List<RimWorld.Planet.PlanetTile> neighbors = new List<RimWorld.Planet.PlanetTile>();
+                while (queue.Count > 0)
+                {
+                    int current = queue.Dequeue();
+                    riverSegment.Add(current);
+
+                    neighbors.Clear();
+                    Find.WorldGrid.GetTileNeighbors(current, neighbors);
+                    foreach (var n in neighbors)
+                    {
+                        int nid = n.tileId;
+                        if (tileToProvinceId[nid] == -1 && !riverVisited[nid] && HasRiver(nid) && 
+                            (Find.WorldGrid.GetRiverDef(current, nid) != null || Find.WorldGrid.GetRiverDef(nid, current) != null))
+                        {
+                            riverVisited[nid] = true;
+                            queue.Enqueue(nid);
+                        }
+                    }
+                }
+
+                if (riverSegment.Count > 0)
+                {
+                    GeographicProvince domain = new GeographicProvince(provinceIdCounter);
+                    domain.tiles = riverSegment.ToList();
+                    domain.provinceType = ProvinceType.River;
+                    domain.primaryBiome = GetPrimaryBiome(riverSegment);
+                    domain.name = GenerateProvinceName(provinceIdCounter, domain.primaryBiome, domain.provinceType);
+
+                    foreach (int tileId in riverSegment)
+                    {
+                        tileToProvinceId[tileId] = provinceIdCounter;
+                    }
+                    provinces.Add(domain);
+                    provinceIdCounter++;
+                }
+            }
+
+            // Phase 4: Land Valleys (remaining hospitable land tiles, excluding WaterCovered and Impassable ones)
+            bool[] landVisited = new bool[totalTiles];
             int baseMin = FactionPlacementSettings.minRegionSize;
             int baseMax = FactionPlacementSettings.maxRegionSize;
 
-            // Offset parameters to match user rules:
-            // - With natural features: min 70, max 180 (grow to fit)
-            // - Without natural features: min 80, max 160
             int minWithFeatures = baseMin - 5;
             int minNoFeatures = baseMin + 5;
             int maxWithFeatures = baseMax + 30;
             int maxNoFeatures = baseMax + 10;
 
-            foreach (var chunk in biomeChunks)
+            for (int i = 0; i < totalTiles; i++)
             {
-                bool hasFeatures = ChunkHasNaturalFeatures(chunk);
+                Tile tileData = Find.WorldGrid[i];
+                if (tileToProvinceId[i] != -1 || landVisited[i] || tileData.hilliness == Hilliness.Impassable || (tileData.PrimaryBiome != null && tileData.PrimaryBiome.impassable)) continue;
+
+                List<int> landPocket = new List<int>();
+                Queue<int> queue = new Queue<int>();
+                queue.Enqueue(i);
+                landVisited[i] = true;
+
+                List<RimWorld.Planet.PlanetTile> neighbors = new List<RimWorld.Planet.PlanetTile>();
+                while (queue.Count > 0)
+                {
+                    int current = queue.Dequeue();
+                    landPocket.Add(current);
+
+                    neighbors.Clear();
+                    Find.WorldGrid.GetTileNeighbors(current, neighbors);
+                    foreach (var n in neighbors)
+                    {
+                        int nid = n.tileId;
+                        Tile neighborData = Find.WorldGrid[nid];
+                        if (tileToProvinceId[nid] == -1 && !landVisited[nid] && neighborData.hilliness != Hilliness.Impassable && (neighborData.PrimaryBiome == null || !neighborData.PrimaryBiome.impassable))
+                        {
+                            landVisited[nid] = true;
+                            queue.Enqueue(nid);
+                        }
+                    }
+                }
+
+                if (landPocket.Count == 0) continue;
+
+                bool hasFeatures = ChunkHasNaturalFeatures(landPocket);
                 int maxAllowed = hasFeatures ? maxWithFeatures : maxNoFeatures;
 
-                if (chunk.Count <= maxAllowed)
+                if (landPocket.Count <= maxAllowed)
                 {
                     GeographicProvince domain = new GeographicProvince(provinceIdCounter);
-                    domain.tiles = chunk.ToList();
-                    Tile sampleTile = Find.WorldGrid[chunk[0]];
-                    domain.primaryBiome = sampleTile.PrimaryBiome;
-                    domain.name = GenerateProvinceName(provinceIdCounter, sampleTile.PrimaryBiome);
-                    
-                    foreach (int tileId in chunk)
+                    domain.tiles = landPocket.ToList();
+                    domain.provinceType = ProvinceType.Land;
+                    domain.primaryBiome = GetPrimaryBiome(landPocket);
+                    domain.name = GenerateProvinceName(provinceIdCounter, domain.primaryBiome, domain.provinceType);
+
+                    foreach (int tileId in landPocket)
                     {
                         tileToProvinceId[tileId] = provinceIdCounter;
                     }
@@ -146,19 +317,16 @@ namespace RimSynapse.Factions
                 }
                 else
                 {
-                    RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Splitting chunk of size {chunk.Count}...", "factions");
-                    List<List<int>> subPockets = SplitChunkByVoronoi(chunk);
-                    RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Split chunk into {subPockets.Count} subpockets.", "factions");
-                    
+                    List<List<int>> subPockets = SplitChunkByVoronoi(landPocket);
                     foreach (var pocket in subPockets)
                     {
                         if (pocket.Count == 0) continue;
 
                         GeographicProvince domain = new GeographicProvince(provinceIdCounter);
                         domain.tiles = pocket.ToList();
-                        Tile sampleTile = Find.WorldGrid[pocket[0]];
-                        domain.primaryBiome = sampleTile.PrimaryBiome;
-                        domain.name = GenerateProvinceName(provinceIdCounter, sampleTile.PrimaryBiome);
+                        domain.provinceType = ProvinceType.Land;
+                        domain.primaryBiome = GetPrimaryBiome(pocket);
+                        domain.name = GenerateProvinceName(provinceIdCounter, domain.primaryBiome, domain.provinceType);
 
                         foreach (int tileId in pocket)
                         {
@@ -169,11 +337,158 @@ namespace RimSynapse.Factions
                     }
                 }
             }
+            // Phase 4.5: River Segmentation & Connection (Absorb rivers and small lakes into bordering Land/Ocean/Lake provinces)
+            List<GeographicProvince> finalProvinces = provinces.Where(p => p.provinceType != ProvinceType.River).ToList();
+            List<GeographicProvince> riverProvinces = provinces.Where(p => p.provinceType == ProvinceType.River).ToList();
 
-            // Pass 2: Adjust regions via merging, using custom min size rules based on natural boundaries
+            // Cache province types for O(1) lookups
+            Dictionary<int, ProvinceType> provinceTypeMap = provinces.ToDictionary(p => p.id, p => p.provinceType);
+
+            Dictionary<int, int> resolvedRiverTiles = new Dictionary<int, int>();
+            List<int> unresolvedRiverTiles = new List<int>();
+
+            foreach (var rp in riverProvinces)
+            {
+                foreach (int t in rp.tiles)
+                {
+                    unresolvedRiverTiles.Add(t);
+                }
+            }
+
+            // Find all contiguous water bodies that are small (< 25 tiles) and mark them for absorption
+            bool[] waterVisited = new bool[totalTiles];
+            for (int i = 0; i < totalTiles; i++)
+            {
+                Tile tileData = Find.WorldGrid[i];
+                if (!tileData.WaterCovered || waterVisited[i]) continue;
+
+                List<int> waterBody = new List<int>();
+                Queue<int> queue = new Queue<int>();
+                queue.Enqueue(i);
+                waterVisited[i] = true;
+
+                List<RimWorld.Planet.PlanetTile> subNeighbors = new List<RimWorld.Planet.PlanetTile>();
+                while (queue.Count > 0)
+                {
+                    int current = queue.Dequeue();
+                    waterBody.Add(current);
+
+                    subNeighbors.Clear();
+                    Find.WorldGrid.GetTileNeighbors(current, subNeighbors);
+                    foreach (var n in subNeighbors)
+                    {
+                        if (!waterVisited[n.tileId] && Find.WorldGrid[n.tileId].WaterCovered)
+                        {
+                            waterVisited[n.tileId] = true;
+                            queue.Enqueue(n.tileId);
+                        }
+                    }
+                }
+
+                if (waterBody.Count < 25)
+                {
+                    foreach (int tileId in waterBody)
+                    {
+                        unresolvedRiverTiles.Add(tileId);
+                    }
+                }
+            }
+
+            List<RimWorld.Planet.PlanetTile> connectNeighbors = new List<RimWorld.Planet.PlanetTile>();
+            int connectSafety = 0;
+            while (unresolvedRiverTiles.Count > 0 && connectSafety < 10)
+            {
+                connectSafety++;
+                List<int> nextUnresolved = new List<int>();
+
+                foreach (int t in unresolvedRiverTiles)
+                {
+                    connectNeighbors.Clear();
+                    Find.WorldGrid.GetTileNeighbors(t, connectNeighbors);
+
+                    int bestProvinceId = -1;
+                    Dictionary<int, int> provWeights = new Dictionary<int, int>();
+
+                    foreach (var n in connectNeighbors)
+                    {
+                        int nid = n.tileId;
+                        int pid = tileToProvinceId[nid];
+                        if (pid != -1)
+                        {
+                            if (provinceTypeMap.TryGetValue(pid, out var type) && type != ProvinceType.River)
+                            {
+                                if (!provWeights.ContainsKey(pid)) provWeights[pid] = 0;
+                                provWeights[pid]++;
+                            }
+                        }
+                    }
+
+                    if (provWeights.Any())
+                    {
+                        bestProvinceId = provWeights.OrderByDescending(kv => kv.Value).First().Key;
+                    }
+
+                    if (bestProvinceId != -1)
+                    {
+                        resolvedRiverTiles[t] = bestProvinceId;
+                        // Also update the mapped type so that subsequent iterations can see it
+                        provinceTypeMap[t] = provinceTypeMap[bestProvinceId];
+                    }
+                    else
+                    {
+                        nextUnresolved.Add(t);
+                    }
+                }
+
+                if (nextUnresolved.Count == unresolvedRiverTiles.Count)
+                {
+                    // Force assign remaining unresolved tiles to any adjacent non-river province
+                    foreach (int t in nextUnresolved)
+                    {
+                        connectNeighbors.Clear();
+                        Find.WorldGrid.GetTileNeighbors(t, connectNeighbors);
+                        foreach (var n in connectNeighbors)
+                        {
+                            int pid = tileToProvinceId[n.tileId];
+                            if (pid != -1)
+                            {
+                                if (provinceTypeMap.TryGetValue(pid, out var type) && type != ProvinceType.River)
+                                {
+                                    resolvedRiverTiles[t] = pid;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+
+                unresolvedRiverTiles = nextUnresolved;
+            }
+
+            // Apply river tile absorption
+            foreach (var kvp in resolvedRiverTiles)
+            {
+                int tileId = kvp.Key;
+                int destProvinceId = kvp.Value;
+                var destProv = finalProvinces.FirstOrDefault(p => p.id == destProvinceId);
+                if (destProv != null)
+                {
+                    destProv.tiles.Add(tileId);
+                    tileToProvinceId[tileId] = destProvinceId;
+                }
+            }
+
+            provinces = finalProvinces;
+
+            // Phase 5: Consolidation & Merging (Pass 2)
             RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Starting MergeTinyDomains...", "factions");
             MergeTinyDomains(minWithFeatures, minNoFeatures);
             RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Finished MergeTinyDomains.", "factions");
+
+            // Naming Phase: Contextual Name Resolution
+            RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Running contextual province naming...", "factions");
+            ResolveContextualNames();
 
             RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Generated {provinces.Count} Geographic Domains.", "factions");
         }
@@ -231,11 +546,13 @@ namespace RimSynapse.Factions
             return false;
         }
 
-        private List<List<int>> GetBiomeChunks()
+        private List<List<int>> GetNaturalBasins()
         {
             int totalTiles = Find.WorldGrid.TilesCount;
             bool[] visited = new bool[totalTiles];
-            List<List<int>> chunks = new List<List<int>>();
+            List<List<int>> basins = new List<List<int>>();
+
+            List<RimWorld.Planet.PlanetTile> neighbors = new List<RimWorld.Planet.PlanetTile>();
 
             for (int t = 0; t < totalTiles; t++)
             {
@@ -247,19 +564,15 @@ namespace RimSynapse.Factions
 
                 if (visited[t]) continue;
 
-                List<int> chunk = new List<int>();
+                List<int> basin = new List<int>();
                 Queue<int> queue = new Queue<int>();
                 queue.Enqueue(t);
                 visited[t] = true;
 
-                List<RimWorld.Planet.PlanetTile> neighbors = new List<RimWorld.Planet.PlanetTile>();
-
                 while (queue.Count > 0)
                 {
                     int current = queue.Dequeue();
-                    chunk.Add(current);
-
-                    Tile currentData = Find.WorldGrid[current];
+                    basin.Add(current);
 
                     neighbors.Clear();
                     Find.WorldGrid.GetTileNeighbors(current, neighbors);
@@ -276,7 +589,8 @@ namespace RimSynapse.Factions
                             continue;
                         }
 
-                        if (currentData.PrimaryBiome != neighborData.PrimaryBiome)
+                        // Do not cross river or mountain barriers during the initial basin flood fill
+                        if (IsBoundary(current, neighborId))
                         {
                             continue;
                         }
@@ -286,13 +600,26 @@ namespace RimSynapse.Factions
                     }
                 }
 
-                if (chunk.Count > 0)
+                if (basin.Count > 0)
                 {
-                    chunks.Add(chunk);
+                    basins.Add(basin);
                 }
             }
 
-            return chunks;
+            return basins;
+        }
+
+        private bool IsBoundary(int tileA, int tileB)
+        {
+            if (Find.WorldGrid == null) return false;
+
+            // River check: Rivers act as primary boundaries
+            if (Find.WorldGrid.GetRiverDef(tileA, tileB) != null || Find.WorldGrid.GetRiverDef(tileB, tileA) != null)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private List<List<int>> SplitChunkByVoronoi(List<int> chunk)
@@ -305,36 +632,46 @@ namespace RimSynapse.Factions
             if (k < 2) k = 2;
 
             List<int> seeds = new List<int>();
-            
-            int step = Mathf.Max(1, size / k);
-            for (int i = 0; i < size; i += step)
+            if (k > 0 && chunk.Count > 0)
             {
-                int tile = chunk[i];
-                bool tooClose = false;
-                foreach (int seed in seeds)
+                seeds.Add(chunk[0]);
+
+                while (seeds.Count < k)
                 {
-                    if (Find.WorldGrid.ApproxDistanceInTiles(tile, seed) < 8f)
+                    int bestTile = -1;
+                    float maxMinDist = -1f;
+
+                    int sampleStep = Mathf.Max(1, chunk.Count / 300);
+                    for (int i = 0; i < chunk.Count; i += sampleStep)
                     {
-                        tooClose = true;
+                        int tile = chunk[i];
+                        if (seeds.Contains(tile)) continue;
+
+                        float minDist = float.MaxValue;
+                        foreach (int seed in seeds)
+                        {
+                            float dist = Find.WorldGrid.ApproxDistanceInTiles(tile, seed);
+                            if (dist < minDist)
+                            {
+                                minDist = dist;
+                            }
+                        }
+
+                        if (minDist > maxMinDist)
+                        {
+                            maxMinDist = minDist;
+                            bestTile = tile;
+                        }
+                    }
+
+                    if (bestTile != -1)
+                    {
+                        seeds.Add(bestTile);
+                    }
+                    else
+                    {
                         break;
                     }
-                }
-                if (!tooClose)
-                {
-                    seeds.Add(tile);
-                }
-                if (seeds.Count >= k) break;
-            }
-
-            if (seeds.Count < k)
-            {
-                foreach (int tile in chunk)
-                {
-                    if (!seeds.Contains(tile))
-                    {
-                        seeds.Add(tile);
-                    }
-                    if (seeds.Count >= k) break;
                 }
             }
 
@@ -417,24 +754,31 @@ namespace RimSynapse.Factions
         {
             RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] MergeTinyDomains started. Initial region count: {provinces.Count}", "factions");
             List<RimWorld.Planet.PlanetTile> neighbors = new List<RimWorld.Planet.PlanetTile>();
-            int iterations = 0;
+            int totalMerged = 0;
+            int pass = 0;
 
-            while (true)
+            while (pass < 10) // Safety limit of 10 passes
             {
-                GeographicProvince tinyDomain = null;
-                GeographicProvince bestNeighbor = null;
+                pass++;
+                bool mergedAnyInThisPass = false;
+                List<GeographicProvince> toRemove = new List<GeographicProvince>();
+
+                // Build a quick map of province ID to the actual province object
+                var provinceMap = provinces.ToDictionary(p => p.id, p => p);
 
                 foreach (var p in provinces)
                 {
+                    if (p.provinceType == ProvinceType.Ocean) continue;
+                    if (toRemove.Contains(p)) continue;
+
                     int pSize = p.tiles.Count;
-                    bool hasBoundaries = RegionHasNaturalBoundaries(p);
-                    int minSize = hasBoundaries ? minWithFeatures : minNoFeatures;
+                    bool isFeature = p.provinceType == ProvinceType.River || p.provinceType == ProvinceType.Lake || p.provinceType == ProvinceType.MountainRange;
+                    int threshold = isFeature ? 30 : minNoFeatures;
 
-                    if (pSize >= minSize) continue;
+                    if (pSize >= threshold) continue;
 
-                    // Verify if this tiny pocket can merge with a neighbor of the same biome WITHOUT crossing a river/mountain
-                    bool canMergeWithoutCrossing = false;
-                    Dictionary<int, int> neighborBorders = new Dictionary<int, int>();
+                    // Find adjacent neighbors
+                    Dictionary<int, int> neighborWeights = new Dictionary<int, int>();
 
                     foreach (int tile in p.tiles)
                     {
@@ -446,71 +790,183 @@ namespace RimSynapse.Factions
                             int neighborProvinceId = GetProvinceId(neighborId);
                             if (neighborProvinceId != -1 && neighborProvinceId != p.id)
                             {
-                                bool crossesRiver = Find.WorldGrid.GetRiverDef(tile, neighborId) != null || Find.WorldGrid.GetRiverDef(neighborId, tile) != null;
-                                bool crossesMountain = Find.WorldGrid[tile].hilliness == Hilliness.Mountainous || Find.WorldGrid[neighborId].hilliness == Hilliness.Mountainous;
-
-                                if (!crossesRiver && !crossesMountain)
+                                // If the neighbor province was already marked to be removed in this pass, ignore it
+                                if (provinceMap.TryGetValue(neighborProvinceId, out var neighborProv))
                                 {
-                                    canMergeWithoutCrossing = true;
-                                }
+                                    if (neighborProv.provinceType == ProvinceType.Ocean || toRemove.Contains(neighborProv)) continue;
 
-                                int weight = 10;
-                                if (crossesRiver || crossesMountain)
-                                {
-                                    weight = 1; // Heavy penalty for crossing river/mountain
-                                }
+                                    int weight = 1;
+                                    if (neighborProv.provinceType == ProvinceType.Land)
+                                    {
+                                        weight = 100;
+                                    }
 
-                                if (!neighborBorders.ContainsKey(neighborProvinceId))
-                                {
-                                    neighborBorders[neighborProvinceId] = 0;
+                                    if (!neighborWeights.ContainsKey(neighborProvinceId))
+                                    {
+                                        neighborWeights[neighborProvinceId] = 0;
+                                    }
+                                    neighborWeights[neighborProvinceId] += weight;
                                 }
-                                neighborBorders[neighborProvinceId] += weight;
                             }
                         }
                     }
 
-                    // If it is bounded by natural features (cannot merge without crossing) and is at least minWithFeatures,
-                    // we preserve it rather than forcing it to merge across the river.
-                    if (pSize >= minWithFeatures && !canMergeWithoutCrossing)
+                    if (neighborWeights.Any())
                     {
-                        if (iterations == 0)
+                        int bestNeighborId = neighborWeights.OrderByDescending(kv => kv.Value).First().Key;
+                        if (provinceMap.TryGetValue(bestNeighborId, out var bestNeighbor))
                         {
-                            RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Preserved natural pocket: Region {p.id} ({p.name}), Size: {pSize} (Threshold: {minSize}), Biome: {p.primaryBiome?.defName}, Reason: Bounded by natural features.", "factions");
-                        }
-                        continue;
-                    }
-
-                    if (neighborBorders.Any())
-                    {
-                        int bestNeighborId = neighborBorders.OrderByDescending(kv => kv.Value).First().Key;
-                        GeographicProvince neighborProvince = GetProvince(bestNeighborId);
-                        if (neighborProvince != null)
-                        {
-                            tinyDomain = p;
-                            bestNeighbor = neighborProvince;
-                            break;
+                            // Merge p into bestNeighbor
+                            foreach (int tileId in p.tiles)
+                            {
+                                bestNeighbor.tiles.Add(tileId);
+                                tileToProvinceId[tileId] = bestNeighbor.id;
+                            }
+                            toRemove.Add(p);
+                            mergedAnyInThisPass = true;
+                            totalMerged++;
                         }
                     }
                 }
 
-                if (tinyDomain == null || bestNeighbor == null)
+                if (!mergedAnyInThisPass)
                 {
                     break;
                 }
 
-                RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] Merging tiny Region {tinyDomain.id} ({tinyDomain.name}, size {tinyDomain.tiles.Count}) into adjacent Region {bestNeighbor.id} ({bestNeighbor.name}, size {bestNeighbor.tiles.Count}).", "factions");
-
-                foreach (int tileId in tinyDomain.tiles)
+                // Remove the merged provinces
+                foreach (var p in toRemove)
                 {
-                    bestNeighbor.tiles.Add(tileId);
-                    tileToProvinceId[tileId] = bestNeighbor.id;
+                    provinces.Remove(p);
                 }
-
-                provinces.Remove(tinyDomain);
-                iterations++;
             }
 
-            RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] MergeTinyDomains finished. Merging adjusted {iterations} regions. Final region count: {provinces.Count}", "factions");
+            RimSynapse.SynapseLogger.Info($"[RimSynapse-Factions] MergeTinyDomains finished. Merged {totalMerged} regions in {pass} passes. Final region count: {provinces.Count}", "factions");
+        }
+
+        private void ResolveContextualNames()
+        {
+            if (Find.WorldFeatures == null || Find.WorldFeatures.features.NullOrEmpty()) return;
+
+            // Cache centroids of all vanilla WorldFeatures
+            var featureCentroids = new Dictionary<WorldFeature, Vector3>();
+            foreach (var wf in Find.WorldFeatures.features)
+            {
+                if (!wf.Tiles.Any()) continue;
+                Vector3 center = Vector3.zero;
+                foreach (int t in wf.Tiles)
+                {
+                    center += Find.WorldGrid.GetTileCenter(t);
+                }
+                featureCentroids[wf] = center / wf.Tiles.Count();
+            }
+
+            foreach (var province in provinces)
+            {
+                if (province.tiles.Count == 0) continue;
+
+                // Calculate province centroid
+                Vector3 provinceCenter = Vector3.zero;
+                foreach (int t in province.tiles)
+                {
+                    provinceCenter += Find.WorldGrid.GetTileCenter(t);
+                }
+                provinceCenter /= province.tiles.Count;
+
+                // Find the closest WorldFeature
+                WorldFeature closestFeature = null;
+                float minSqrDist = float.MaxValue;
+                foreach (var kvp in featureCentroids)
+                {
+                    float sqrDist = (provinceCenter - kvp.Value).sqrMagnitude;
+                    if (sqrDist < minSqrDist)
+                    {
+                        minSqrDist = sqrDist;
+                        closestFeature = kvp.Key;
+                    }
+                }
+
+                if (closestFeature != null)
+                {
+                    // If directly overlapping a vanilla feature, use its name
+                    var directOverlap = Find.WorldFeatures.features
+                        .FirstOrDefault(wf => wf.Tiles.Any(t => province.tiles.Contains(t)));
+
+                    if (directOverlap != null)
+                    {
+                        province.name = directOverlap.name;
+                    }
+                    else
+                    {
+                        // Infer name based on closest feature
+                        if (province.provinceType == ProvinceType.Lake)
+                        {
+                            province.name = closestFeature.name.Contains("Lake") || closestFeature.name.Contains("Sea") 
+                                ? closestFeature.name 
+                                : $"{closestFeature.name} Lake";
+                        }
+                        else if (province.provinceType == ProvinceType.Ocean)
+                        {
+                            province.name = closestFeature.name.Contains("Ocean") 
+                                ? closestFeature.name 
+                                : $"{closestFeature.name} Ocean";
+                        }
+                        else if (province.provinceType == ProvinceType.MountainRange)
+                        {
+                            province.name = closestFeature.name.Contains("Mountains") || closestFeature.name.Contains("Range") 
+                                ? closestFeature.name 
+                                : $"{closestFeature.name} Mountains";
+                        }
+                        else if (province.provinceType == ProvinceType.River)
+                        {
+                            province.name = GenerateRiverName(province.id, closestFeature.name);
+                        }
+                    }
+                }
+            }
+        }
+
+        private string GenerateRiverName(int id, string nearbyFeatureName)
+        {
+            var prefixes = new[] { "Silent", "Whispering", "Shimmering", "Roaring", "Winding", "Deep", "Swift", "Cold", "Grey", "Green", "Red", "Silver", "Golden", "Muddy", "Black", "Wild", "Broad", "Shadow", "Serpent", "Ghost", "Sun", "Moon", "Star", "Glimmering", "Ember", "Frost" };
+            var suffixes = new[] { "River", "Creek", "Flow", "Fork", "Run", "Torrent", "Stream", "Waters", "Channel" };
+
+            System.Random rand = new System.Random(id * 79 + 37);
+
+            // 50% chance to name after nearby feature, 50% to generate a generic beautiful name
+            if (rand.NextDouble() < 0.5f && !string.IsNullOrEmpty(nearbyFeatureName))
+            {
+                string cleanName = nearbyFeatureName
+                    .Replace("Mountains", "")
+                    .Replace("Mountain Range", "")
+                    .Replace("Scrubland", "")
+                    .Replace("Scrublands", "")
+                    .Replace("Forest", "")
+                    .Replace("Tangle", "")
+                    .Replace("Basin", "")
+                    .Replace("Swamp", "")
+                    .Replace("Bog", "")
+                    .Trim();
+
+                string suffix = suffixes[rand.Next(suffixes.Length)];
+                return $"{cleanName} {suffix}";
+            }
+            else
+            {
+                string prefix = prefixes[rand.Next(prefixes.Length)];
+                string suffix = suffixes[rand.Next(suffixes.Length)];
+                return $"{prefix} {suffix}";
+            }
+        }
+
+        private string GenerateProvinceName(int provinceId, BiomeDef biome, ProvinceType type)
+        {
+            if (type == ProvinceType.Ocean) return "Ocean Region " + provinceId;
+            if (type == ProvinceType.Lake) return "Lake Region " + provinceId;
+            if (type == ProvinceType.River) return "River Region " + provinceId;
+            if (type == ProvinceType.MountainRange) return "Mountain Region " + provinceId;
+
+            return GenerateProvinceName(provinceId, biome);
         }
 
         private string GenerateProvinceName(int provinceId, BiomeDef biome)

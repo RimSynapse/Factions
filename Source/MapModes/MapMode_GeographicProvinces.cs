@@ -34,6 +34,27 @@ namespace RimSynapse.Factions
                 if (province.tiles.Count == 0) continue;
 
                 Material bodyMat = BaseContent.ClearMat;
+                if (province.provinceType == ProvinceType.Ocean)
+                {
+                    bodyMat = BaseContent.ClearMat;
+                }
+                else if (province.provinceType == ProvinceType.Lake)
+                {
+                    bodyMat = SolidColorMaterials.SimpleSolidColorMaterial(new Color(0.12f, 0.45f, 0.8f, 0.25f));
+                }
+                else if (province.provinceType == ProvinceType.River)
+                {
+                    bodyMat = SolidColorMaterials.SimpleSolidColorMaterial(new Color(0.12f, 0.65f, 0.8f, 0.3f));
+                }
+                else if (province.provinceType == ProvinceType.MountainRange)
+                {
+                    bodyMat = SolidColorMaterials.SimpleSolidColorMaterial(new Color(0.48f, 0.48f, 0.48f, 0.35f));
+                }
+                else
+                {
+                    Color uniqueColor = GetUniqueColor(province.id);
+                    bodyMat = SolidColorMaterials.SimpleSolidColorMaterial(uniqueColor);
+                }
 
                 Color borderColor = new Color(1f, 1f, 1f, 0.8f);
                 Material borderMat = null;
@@ -71,7 +92,7 @@ namespace RimSynapse.Factions
                     }
                 }
 
-                string tooltipText = $"Region: {province.name}\nBiome: {province.primaryBiome?.LabelCap ?? "Unknown"}\nStatus: {ownerString}\nTiles: {province.tiles.Count}";
+                string tooltipText = $"Region: {province.name}\nType: {province.provinceType}\nBiome: {province.primaryBiome?.LabelCap ?? "Unknown"}\nStatus: {ownerString}\nTiles: {province.tiles.Count}";
 
                 Region region = new Region(
                     province.name,
@@ -129,6 +150,7 @@ namespace RimSynapse.Factions
 
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
             sb.AppendLine($"Region: {province.name}");
+            sb.AppendLine($"Type: {province.provinceType}");
             sb.AppendLine($"Biome: {province.primaryBiome?.LabelCap ?? "Unknown"}");
             sb.AppendLine($"Status: {ownerString}");
             sb.AppendLine($"Tiles: {province.tiles.Count}");

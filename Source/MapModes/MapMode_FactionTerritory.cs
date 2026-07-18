@@ -109,7 +109,7 @@ namespace RimSynapse.Factions
                     doBorders,
                     borderMat,
                     borderWidth,
-                    tooltip: $"Province: {province.name}\nBiome: {province.primaryBiome?.LabelCap ?? "Unknown"}\n{ownerString}"
+                    tooltip: $"Province: {province.name}\nType: {province.provinceType}\nBiome: {province.primaryBiome?.LabelCap ?? "Unknown"}\n{ownerString}"
                 );
 
                 regions.Add(region);

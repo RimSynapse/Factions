@@ -20,80 +20,137 @@ namespace RimSynapse.Factions
             }
         }
 
-        public static int GetPopulationAtTile(int targetTile)
+        private static int[] cachedTilePopulations = null;
+        private static bool cacheDirty = true;
+
+        public static void MarkCacheDirty()
         {
-            if (Find.World == null || Find.WorldGrid == null) return 0;
+            cacheDirty = true;
+        }
 
-            var settlements = Find.WorldObjects?.Settlements;
-            if (settlements == null || !settlements.Any()) return 0;
-
-            // Retrieve the start tile's PlanetTile reference safely via graph neighbors lookup
-            PlanetTile startPlanetTile = PlanetTile.Invalid;
-            var tempNeighbors = new List<PlanetTile>();
-            Find.WorldGrid.GetTileNeighbors(targetTile, tempNeighbors);
-            if (tempNeighbors.Any())
+        private static void RefreshCache()
+        {
+            if (Find.World == null || Find.WorldGrid == null) return;
+            int count = Find.WorldGrid.TilesCount;
+            if (cachedTilePopulations == null || cachedTilePopulations.Length != count)
             {
-                var doubleNeighbors = new List<PlanetTile>();
-                Find.WorldGrid.GetTileNeighbors(tempNeighbors[0].tileId, doubleNeighbors);
-                foreach (var t in doubleNeighbors)
+                cachedTilePopulations = new int[count];
+            }
+            else
+            {
+                System.Array.Clear(cachedTilePopulations, 0, count);
+            }
+
+            float[] tempPops = new float[count];
+
+            // 1. Baseline random pawn placement in relatively hospitable environments (nomads, homesteads)
+            for (int i = 0; i < count; i++)
+            {
+                Tile tileData = Find.WorldGrid[i];
+                if (tileData.WaterCovered || tileData.hilliness == Hilliness.Impassable || tileData.PrimaryBiome == null || tileData.PrimaryBiome.impassable)
                 {
-                    if (t.tileId == targetTile)
+                    continue;
+                }
+
+                if (tileData.temperature >= -12f && tileData.temperature <= 42f && tileData.PrimaryBiome.plantDensity > 0.15f)
+                {
+                    UnityEngine.Random.State state = UnityEngine.Random.state;
+                    UnityEngine.Random.InitState(i * 377 + 99);
+                    float roll = UnityEngine.Random.value;
+                    if (roll < 0.06f)
                     {
-                        startPlanetTile = t;
-                        break;
+                        float basePop = UnityEngine.Random.Range(2f, 8f) * (tileData.PrimaryBiome.plantDensity + tileData.PrimaryBiome.forageability + 0.2f);
+                        tempPops[i] += basePop;
                     }
+                    UnityEngine.Random.state = state;
                 }
             }
 
-            if (startPlanetTile == PlanetTile.Invalid) return 0;
-
-            float totalPop = 0f;
-            var visited = new HashSet<int>();
-            var queue = new Queue<QueueEntry>();
-
-            queue.Enqueue(new QueueEntry(startPlanetTile, 1.0f));
-            visited.Add(targetTile);
-
-            var settlementList = new List<Settlement>(settlements);
-
-            while (queue.Count > 0)
+            // 2. Settlement propagation
+            var settlements = Find.WorldObjects?.Settlements;
+            if (settlements != null)
             {
-                var current = queue.Dequeue();
-                PlanetTile currentTile = current.tile;
-                int currentTileId = currentTile.tileId;
-                float currentMultiplier = current.multiplier;
-
-                // Stop traversing if multiplier is practically zero to save performance
-                if (currentMultiplier < 0.001f) continue;
-
-                // Check if there is a settlement at this tile
-                var settlement = settlementList.FirstOrDefault(s => s.Tile == currentTileId);
-                if (settlement != null)
+                var settlementList = new List<Settlement>(settlements);
+                foreach (var settlement in settlementList)
                 {
                     int settlementPop = GetSettlementPopulation(settlement);
-                    totalPop += (settlementPop * currentMultiplier);
-                }
+                    if (settlementPop <= 0) continue;
 
-                // Traverse to neighbors
-                var neighbors = new List<PlanetTile>();
-                Find.WorldGrid.GetTileNeighbors(currentTileId, neighbors);
-                foreach (var neighbor in neighbors)
-                {
-                    int neighborId = neighbor.tileId;
-                    if (!visited.Contains(neighborId))
+                    int startTileId = settlement.Tile;
+
+                    PlanetTile startPlanetTile = PlanetTile.Invalid;
+                    var tempNeighbors = new List<PlanetTile>();
+                    Find.WorldGrid.GetTileNeighbors(startTileId, tempNeighbors);
+                    if (tempNeighbors.Any())
                     {
-                        visited.Add(neighborId);
-
-                        float stepMultiplier = GetStepMultiplier(currentTile, neighbor);
-                        if (stepMultiplier > 0f)
+                        var doubleNeighbors = new List<PlanetTile>();
+                        Find.WorldGrid.GetTileNeighbors(tempNeighbors[0].tileId, doubleNeighbors);
+                        foreach (var t in doubleNeighbors)
                         {
-                            queue.Enqueue(new QueueEntry(neighbor, currentMultiplier * stepMultiplier));
+                            if (t.tileId == startTileId)
+                            {
+                                startPlanetTile = t;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (startPlanetTile == PlanetTile.Invalid) continue;
+
+                    var visited = new HashSet<int>();
+                    var queue = new Queue<QueueEntry>();
+
+                    queue.Enqueue(new QueueEntry(startPlanetTile, 1.0f));
+                    visited.Add(startTileId);
+
+                    while (queue.Count > 0)
+                    {
+                        var current = queue.Dequeue();
+                        PlanetTile currentTile = current.tile;
+                        int currentTileId = currentTile.tileId;
+                        float currentMultiplier = current.multiplier;
+
+                        if (currentMultiplier < 0.001f) continue;
+
+                        tempPops[currentTileId] += (settlementPop * currentMultiplier);
+
+                        var neighbors = new List<PlanetTile>();
+                        Find.WorldGrid.GetTileNeighbors(currentTileId, neighbors);
+                        foreach (var neighbor in neighbors)
+                        {
+                            int neighborId = neighbor.tileId;
+                            if (!visited.Contains(neighborId))
+                            {
+                                visited.Add(neighborId);
+
+                                float stepMultiplier = GetStepMultiplier(currentTile, neighbor);
+                                if (stepMultiplier > 0f)
+                                {
+                                    queue.Enqueue(new QueueEntry(neighbor, currentMultiplier * stepMultiplier));
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            return UnityEngine.Mathf.RoundToInt(totalPop);
+            for (int i = 0; i < count; i++)
+            {
+                cachedTilePopulations[i] = UnityEngine.Mathf.RoundToInt(tempPops[i]);
+            }
+
+            cacheDirty = false;
+        }
+
+        public static int GetPopulationAtTile(int targetTile)
+        {
+            if (Find.World == null || Find.WorldGrid == null) return 0;
+            if (cacheDirty || cachedTilePopulations == null || cachedTilePopulations.Length != Find.WorldGrid.TilesCount)
+            {
+                RefreshCache();
+            }
+            if (cachedTilePopulations == null || targetTile < 0 || targetTile >= cachedTilePopulations.Length) return 0;
+            return cachedTilePopulations[targetTile];
         }
 
         public static int GetSettlementPopulation(Settlement settlement)
@@ -171,14 +228,14 @@ namespace RimSynapse.Factions
                 factor = 2f;
             }
 
-            // Along a road: factor degrades at 75% of previous amount (multiplier 0.75f vs 0.50f), which is a 2/3 factor multiplier
+            // Along a road
             RoadDef road = Find.WorldGrid.GetRoadDef(fromTile, toTile);
             if (road != null)
             {
                 factor *= (2f / 3f);
             }
 
-            // Next to water: factor degrades at 75% of previous amount (multiplier 0.75f vs 0.50f), which is a 2/3 factor multiplier
+            // Next to water
             if (IsNextToWater(toTile.tileId))
             {
                 factor *= (2f / 3f);

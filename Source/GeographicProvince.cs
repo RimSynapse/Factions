@@ -5,6 +5,8 @@ using Verse;
 
 namespace RimSynapse.Factions
 {
+    public enum ProvinceType { Land, River, MountainRange, Lake, Ocean }
+
     public class GeographicProvince : IExposable
     {
         public int id;
@@ -12,11 +14,58 @@ namespace RimSynapse.Factions
         public string name;
         public BiomeDef primaryBiome;
         public List<string> owningFactionIds = new List<string>();
+        public ProvinceType provinceType = ProvinceType.Land;
 
         // --- Economics / Demographics ---
         public bool initializedEconomics;
-        public int totalDwellings;
-        public int currentPopulation;
+
+        private int _totalDwellings;
+        public int totalDwellings
+        {
+            get
+            {
+                int totalProvincePop = 0;
+                if (tiles != null)
+                {
+                    foreach (int tileId in tiles)
+                    {
+                        totalProvincePop += PopulationDensityUtility.GetPopulationAtTile(tileId);
+                    }
+                }
+                if (totalProvincePop <= 0) return 0;
+                int dwellings = totalProvincePop / 2;
+                return dwellings < 1 ? 1 : dwellings;
+            }
+            set
+            {
+                _totalDwellings = value;
+            }
+        }
+
+        private int _currentPopulation;
+        public int currentPopulation
+        {
+            get
+            {
+                if (_currentPopulation <= 0)
+                {
+                    int totalProvincePop = 0;
+                    if (tiles != null)
+                    {
+                        foreach (int tileId in tiles)
+                        {
+                            totalProvincePop += PopulationDensityUtility.GetPopulationAtTile(tileId);
+                        }
+                    }
+                    _currentPopulation = totalProvincePop;
+                }
+                return _currentPopulation;
+            }
+            set
+            {
+                _currentPopulation = value;
+            }
+        }
 
         public float rawNutrition;
         public float biomass;
@@ -50,8 +99,9 @@ namespace RimSynapse.Factions
             }
 
             Scribe_Values.Look(ref initializedEconomics, "initializedEconomics", false);
-            Scribe_Values.Look(ref totalDwellings, "totalDwellings", 0);
-            Scribe_Values.Look(ref currentPopulation, "currentPopulation", 0);
+            Scribe_Values.Look(ref provinceType, "provinceType", ProvinceType.Land);
+            Scribe_Values.Look(ref _totalDwellings, "totalDwellings", 0);
+            Scribe_Values.Look(ref _currentPopulation, "currentPopulation", 0);
 
             Scribe_Values.Look(ref rawNutrition, "rawNutrition", 0f);
             Scribe_Values.Look(ref biomass, "biomass", 0f);
@@ -124,12 +174,7 @@ namespace RimSynapse.Factions
             }
 
             currentPopulation = totalProvincePop;
-            if (currentPopulation == 0)
-            {
-                currentPopulation = 250; // fallback baseline if tracker has no population
-            }
             totalDwellings = currentPopulation / 2;
-            if (totalDwellings < 1) totalDwellings = 1;
 
             bool isSpacer = maxTech >= TechLevel.Spacer;
             bool isIndustrial = maxTech == TechLevel.Industrial;
