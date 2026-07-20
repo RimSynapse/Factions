@@ -15,13 +15,11 @@ No more generic faction templates. Factions works alongside Regions and Territor
 
 ---
 
-[h2]Changelog (v0.5.0)[/h2]
+[h2]Changelog (v0.5.1)[/h2]
 [list]
+[*] [b]Playtest Improvements:[/b] General stability enhancements and compatibility optimizations.
 [*] [b]Thread-Safety Constraints Met:[/b] Pre-caches all tile ownership and textures on the Unity main thread before `PrepareMeshes(...)` is called asynchronously, preventing Unity API crashes on background threads.
-[*] [b]Odyssey Compatibility:[/b] Space-faring faction leaders are generated with space-appropriate lore.
-[*] [b]Framework Cleanup:[/b] Moved the internal Map Mode Framework source code out of the repository for clean dependency management.
 [/list]
-
 ---
 
 [h2]Compatibility Matrix[/h2]
