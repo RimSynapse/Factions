@@ -1,3 +1,6 @@
+[b]Discord Community:[/b] [url=https://discord.gg/eVBebZ2N9s]https://discord.gg/eVBebZ2N9s[/url]
+[b]Version:[/b] v0.5.1 (Target: RimWorld 1.6)
+
 [h1]RimSynapse - Factions[/h1]
 [b]Procedurally generated faction histories, geopolitical schisms, and deep ruler profiles using LLMs.[/b]
 
@@ -7,7 +10,7 @@ No more generic faction templates. Factions works alongside Regions and Territor
 
 [h2]Key Features[/h2]
 [list]
-[*] [b]Procedural Lore & Histories:[/b] Automatically generates rich, ideologically consistent lore and schisms for each spawned faction during world creation.
+[*] [b]Procedural Lore and Histories:[/b] Automatically generates rich, ideologically consistent lore and schisms for each spawned faction during world creation.
 [*] [b]Geopolitical Context:[/b] Interacts with territory borders to spawn splinter houses and rival domains.
 [*] [b]Faction Leader Profiling:[/b] Directly feeds Faction Leader details into the Psychology module for rich, interactive ruler personalities (backstories, traits, and agendas).
 [*] [b]Thread-Safe Map Overlays:[/b] Displays visual, expandable territory control maps using the Map Mode Framework.
@@ -44,6 +47,6 @@ No more generic faction templates. Factions works alongside Regions and Territor
 
 ---
 
-[h2]Open Source & Support[/h2]
+[h2]Open Source and Support[/h2]
 GitHub: [url]https://github.com/RimSynapse/Factions[/url]
 Buy me a coffee: [url]https://buymeacoffee.com/archdukejim[/url]

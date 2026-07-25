@@ -2,6 +2,7 @@ using HarmonyLib;
 using Verse;
 using RimWorld;
 using System.Linq;
+using RimSynapse.RegionsAndTerritories;
 
 namespace RimSynapse.Factions
 {
@@ -62,6 +63,11 @@ namespace RimSynapse.Factions
                         Weight = 1.5f,
                         CooldownTicks = 5000
                     });
+            }
+
+            if (ModsConfig.IdeologyActive)
+            {
+                RegionalDemographicRegistry.RegisterProvider(new RimSynapse.Factions.Ideology.IdeologyDemographicProvider());
             }
         }
 

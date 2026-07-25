@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\github\\rimsynapse\\Factions\\Source\\RimSynapseFactions.csproj": {}
+    "d:\\github\\rimsynapse\\Factions\\Source\\RimSynapseFactions.csproj": {}
   },
   "projects": {
-    "D:\\github\\rimsynapse\\Factions\\Source\\RimSynapseFactions.csproj": {
+    "d:\\github\\rimsynapse\\Factions\\Source\\RimSynapseFactions.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\github\\rimsynapse\\Factions\\Source\\RimSynapseFactions.csproj",
+        "projectUniqueName": "d:\\github\\rimsynapse\\Factions\\Source\\RimSynapseFactions.csproj",
         "projectName": "RimSynapseFactions",
-        "projectPath": "D:\\github\\rimsynapse\\Factions\\Source\\RimSynapseFactions.csproj",
+        "projectPath": "d:\\github\\rimsynapse\\Factions\\Source\\RimSynapseFactions.csproj",
         "packagesPath": "C:\\Users\\sealt\\.nuget\\packages\\",
-        "outputPath": "D:\\github\\rimsynapse\\Factions\\Source\\obj\\",
+        "outputPath": "d:\\github\\rimsynapse\\Factions\\Source\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\sealt\\AppData\\Roaming\\NuGet\\NuGet.Config"
