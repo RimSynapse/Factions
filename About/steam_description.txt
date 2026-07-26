@@ -2,6 +2,7 @@
 [b]Version:[/b] v0.5.2 (Target: RimWorld 1.6)
 
 [h1]RimSynapse - Factions[/h1]
+[b][url=https://github.com/RimSynapse/Factions/wiki]Official Wiki and Documentation[/url][/b]
 [b]Procedurally generated faction histories, geopolitical schisms, and deep ruler profiles using LLMs.[/b]
 
 No more generic faction templates. Factions works alongside Regions and Territories to spawn unique, cloned sub-factions, each with their own procedurally generated histories, schisms, and cultural descriptions.
