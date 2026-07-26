@@ -4,7 +4,7 @@
     <author>RimSynapse Team</author>
     <packageId>RimSynapse.Factions</packageId>
     <url>https://github.com/RimSynapse/Factions</url>
-    <modVersion>0.5.0</modVersion>
+    <modVersion>0.5.2</modVersion>
     <supportedVersions>
         <li>1.5</li>
         <li>1.6</li>
@@ -31,6 +31,9 @@
         <li>Ludeon.RimWorld.Anomaly</li>
     </loadAfter>
     <description>
+Discord Community: https://discord.gg/eVBebZ2N9s
+Version: v0.5.2 (Target: RimWorld 1.6)
+
 RimSynapse - Factions
 Official Wiki and Documentation: https://github.com/RimSynapse/Factions/wiki
 
@@ -38,6 +41,9 @@ Companion Mod for RimSynapse.
 Intercepts world generation to dynamically spawn cloned factions, establish geographic settlement territories, and generate deep LLM histories for the resulting empires and nations.
 
 --- Changelog ---
+v0.5.2
+- Maintenance release, aligned with Core and Psychology fixes
+- Licence changed to PolyForm Noncommercial 1.0.0
 v0.4.0
 - Updated to support RimSynapse Core v0.4.0 (Multi-provider routing and Image generation).
 
