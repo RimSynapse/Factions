@@ -12,7 +12,7 @@ The mod monitors colony developments and registers two main indexes that shape h
 
 ---
 
-## 2. MCP Tool Endpoints
+## 2. Game Tool Endpoints
 
 The Factions submod exposes tools that the Storyteller LLM can query on-demand:
 *   `get_motivated_factions`: Returns a list of hostile factions, their perceived strength of your colony, and their greed ratio.
