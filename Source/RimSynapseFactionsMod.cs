@@ -8,6 +8,89 @@ namespace RimSynapse.Factions
 {
     public class RimSynapseFactionsMod : Mod
     {
+        /// <summary>
+        /// The Empire hooks that ask this mod's simulation layers.
+        ///
+        /// <para>Bound here, and not in Regions and Territories, because the methods they call —
+        /// <c>ProductionScalingUtility</c> and <c>MilitaryReachUtility</c> — live in this assembly
+        /// as of 0.7. R&amp;T still binds its own Empire patches (rewards, tithe plumbing, city
+        /// classification, settlement placement, road overlay); the two patch sets are independent
+        /// and Empire works with either mod alone.</para>
+        ///
+        /// <para>Resolved by reflection rather than by attribute: the target types belong to an
+        /// optional mod, and an unresolvable target must be a logged skip rather than a load
+        /// failure. A silent no-bind is the failure mode to watch — it looks identical to a working
+        /// patch, which is why every branch logs.</para>
+        /// </summary>
+        private void TryPatchEmpires(Harmony harmony)
+        {
+            try
+            {
+                var resourceFcType = GenTypes.GetTypeInAnyAssembly("FactionColonies.ResourceFC");
+                if (resourceFcType != null)
+                {
+                    var originalBase = AccessTools.Method(resourceFcType, "CalculateProductionBase");
+                    if (originalBase != null)
+                    {
+                        var postfix = new HarmonyMethod(typeof(Patches.Factions_EmpirePatch), nameof(Patches.Factions_EmpirePatch.CalculateProductionBase_Postfix));
+                        harmony.Patch(originalBase, postfix: postfix);
+                        Log.Message("[RimSynapse-Factions] Dynamically patched ResourceFC.CalculateProductionBase successfully.");
+                    }
+                    else
+                    {
+                        Log.Warning("[RimSynapse-Factions] Could not find ResourceFC.CalculateProductionBase — production scaling is NOT applied.");
+                    }
+
+                    var originalMult = AccessTools.Method(resourceFcType, "CalculateProductionMult");
+                    if (originalMult != null)
+                    {
+                        var postfix = new HarmonyMethod(typeof(Patches.Factions_EmpirePatch), nameof(Patches.Factions_EmpirePatch.CalculateProductionMult_Postfix));
+                        harmony.Patch(originalMult, postfix: postfix);
+                        Log.Message("[RimSynapse-Factions] Dynamically patched ResourceFC.CalculateProductionMult successfully.");
+                    }
+                    else
+                    {
+                        Log.Warning("[RimSynapse-Factions] Could not find ResourceFC.CalculateProductionMult — the 0.6 population curve is NOT applied.");
+                    }
+                }
+                else
+                {
+                    Log.Message("[RimSynapse-Factions] Empires mod not detected for ResourceFC. Skipping production patching.");
+                }
+
+                var settlementMilitaryType = GenTypes.GetTypeInAnyAssembly("FactionColonies.WorldObjectComp_SettlementMilitary");
+                if (settlementMilitaryType != null)
+                {
+                    var originalSendMilitary = AccessTools.Method(settlementMilitaryType, "SendMilitary", new System.Type[] {
+                        GenTypes.GetTypeInAnyAssembly("FactionColonies.MercenarySquadFC"),
+                        GenTypes.GetTypeInAnyAssembly("FactionColonies.PlanetTile") ?? GenTypes.GetTypeInAnyAssembly("RimWorld.Planet.PlanetTile"),
+                        GenTypes.GetTypeInAnyAssembly("FactionColonies.MilitaryJobDef"),
+                        typeof(int),
+                        typeof(Faction)
+                    });
+
+                    if (originalSendMilitary != null)
+                    {
+                        var prefix = new HarmonyMethod(typeof(Patches.Factions_EmpirePatch), nameof(Patches.Factions_EmpirePatch.SendMilitary_Prefix));
+                        harmony.Patch(originalSendMilitary, prefix: prefix);
+                        Log.Message("[RimSynapse-Factions] Dynamically patched SettlementMilitary.SendMilitary successfully.");
+                    }
+                    else
+                    {
+                        Log.Warning("[RimSynapse-Factions] Could not find specific SendMilitary method overload in SettlementMilitary — military reach is NOT enforced.");
+                    }
+                }
+                else
+                {
+                    Log.Message("[RimSynapse-Factions] Empires mod not detected for SettlementMilitary. Skipping military reach patching.");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Log.Error($"[RimSynapse-Factions] Error patching Empires: {ex}");
+            }
+        }
+
         public static RimSynapse.SynapseModHandle ModHandle;
         
         public RimSynapseFactionsMod(ModContentPack content) : base(content)
@@ -40,6 +123,8 @@ namespace RimSynapse.Factions
                 }
             }
             
+            TryPatchEmpires(harmony);
+
             RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Harmony Patches applied.", "factions");
             
             ModHandle = new RimSynapse.SynapseModHandle("rimsynapse.factions", "RimSynapse Factions");
