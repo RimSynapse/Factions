@@ -65,5 +65,19 @@ v0.4.0
 --- Requirements ---
 - RimSynapse - Core (Must be loaded before this mod)
 - RimSynapse - Regions and Territories (Must be loaded before this mod)
+
+*** LOAD ORDER MATTERS, AND GETTING IT WRONG IS SILENT ***
+
+Both requirements must appear ABOVE this mod in your mod list. This is not a preference. Factions
+is compiled against Regions and Territories, so if it loads first it cannot resolve its own types:
+it will sit in your mod list looking active while doing absolutely nothing - no world generation
+step, no faction behaviour, no settings that work.
+
+RimWorld does not fix this for you. The loadAfter entries above only advise the in-game mod list;
+the order your ModsConfig.xml lists is the order that actually loads, and any tool that sorts your
+mod list alphabetically will produce the broken order, because "factions" sorts before "regions".
+
+RimSynapse Core now detects this at startup and writes a plain-language error naming both mods, so
+if you are ever unsure, check the log.
     </description>
 </ModMetaData>
