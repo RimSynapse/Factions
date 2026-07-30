@@ -97,7 +97,9 @@ namespace RimSynapse.Factions
         {
             RimSynapse.SynapseLogger.Info("[RimSynapse-Factions] Initializing Mod...", "factions");
             
-            Harmony.DEBUG = true;
+            // Harmony.DEBUG is deliberately not set. It is global static state, not per-instance,
+            // so enabling it here dumped the IL of every patch from every mod loaded after this one
+            // to harmony.log.txt on the user's desktop, and slowed patching for all of them (#51).
             var harmony = new Harmony("rimsynapse.factions");
             harmony.PatchAll();
 
