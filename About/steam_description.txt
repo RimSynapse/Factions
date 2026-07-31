@@ -79,6 +79,10 @@ These ship when they are ready - no dates.
 [*] Harmony
 [/list]
 
+[b]Load order matters, and getting it wrong is silent.[/b] Core and Regions and Territories must both sit [b]above[/b] this mod in your list. Factions is compiled against Regions and Territories, so if it loads first it cannot resolve its own types - it will look active while doing nothing at all: no world generation step, no faction behaviour, no working settings.
+
+RimWorld does not fix this for you. A mod's declared load order only advises the in-game mod list; the order in ModsConfig.xml is what actually loads, and any tool that sorts your list alphabetically produces the broken order, because "factions" sorts before "regions". RimSynapse Core now detects it at startup and writes a plain-language error naming both mods.
+
 ---
 
 [h2]Source Code and Support[/h2]
