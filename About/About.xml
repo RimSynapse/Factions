@@ -4,7 +4,7 @@
     <author>RimSynapse Team</author>
     <packageId>RimSynapse.Factions</packageId>
     <url>https://github.com/RimSynapse/Factions</url>
-    <modVersion>0.6.1</modVersion>
+    <modVersion>0.7.0</modVersion>
     <supportedVersions>
         <li>1.5</li>
         <li>1.6</li>
@@ -32,13 +32,19 @@
     </loadAfter>
     <description>
 Discord Community: https://discord.gg/eVBebZ2N9s
-Version: v0.6.1 (Target: RimWorld 1.6)
+Version: v0.7.0 (Target: RimWorld 1.6)
 
 RimSynapse - Factions
 Official Wiki and Documentation: https://github.com/RimSynapse/Factions/wiki
 
-Companion Mod for RimSynapse.
+Companion Mod for RimSynapse. REQUIRES Regions and Territories, and must load after it.
 Intercepts world generation to dynamically spawn cloned factions, establish geographic settlement territories, and generate deep LLM histories for the resulting empires and nations.
+
+As of 0.7 this mod also owns the systems that decide what a faction is worth. Regions and Territories says what a world object is and where it may stand; Factions says what the faction holding it extracts, taxes, defends and looks like from outside:
+- Regional economy: production and taxation computed against Empire Refactored's own figures, scaled by how much of a region a faction actually holds.
+- Settlement size classification: tiers derived from population read through the territory layer, rather than from a mod-specific field.
+- Military reach and supply: how far a faction can project force, and where its border really is.
+- Published faction standing: holdings, provinces, tiles, population and top tier exposed as one counted value other mods can read.
 
 --- Roadmap ---
 0.6 - Agent and Tool Foundation: delivered in v0.6.0.
@@ -49,6 +55,12 @@ Intercepts world generation to dynamically spawn cloned factions, establish geog
 These ship when they are ready - no dates.
 
 --- Changelog ---
+v0.7.0 - Regions and Territories Compatibility
+- NEW - Regional economy: production and taxation computed against Empire's own figures, scaled by how much of a region a faction actually holds.
+- NEW - Settlement size classification, military reach and supply, and a published faction standing surface other mods can read.
+- IMPORTANT - Taxation is modelled but not yet connected to Empire's levy. Tithes are unaffected this release; the wiring lands in a later version.
+- IMPORTANT - Regions and Territories must load BEFORE Factions. Reversed, every Factions type silently disappears and the mod does nothing. RimWorld obeys the order in your mod list, not the declared dependency.
+- Fixed: Harmony debug output was shipped enabled, writing an IL dump to your desktop and slowing patching for every mod loaded after this one.
 v0.6.1
 - Fixed: the in-game mod list showed v0.5.2 with no 0.6.0 notes; version and changelog now agree everywhere
 - Roadmap updated: 0.7 is Regions and Territories compatibility (groundwork for Factions, which will require Empire)
