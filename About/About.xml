@@ -47,32 +47,19 @@ As of 0.7 this mod also owns the systems that decide what a faction is worth. Re
 - Published faction standing: holdings, provinces, tiles, population and top tier exposed as one counted value other mods can read.
 
 --- Roadmap ---
-0.6 - Agent and Tool Foundation: Delivered in v0.6.0 - the agentic faction framework on Core.
-0.7 - Regions and Territories Compatibility: Current release - the territory and Empire groundwork Factions builds on, including regional economy, settlement classification, military reach and published faction standing.
 0.8 - Demographics, News and Narrative Voice: Consuming the regional demographic data that state ideology and ideological spread will be built on.
 0.9 - Factions and Living Societies: The headline release - state ideologies and ideological spread, conversion, ideological sites and spies; the regional economy tick and taxation; DLC-flavoured archetypes (Royalty splinter houses, Ideology holy wars, Biotech xenotype enclaves, Anomaly void cults, Odyssey starfaring fleets); AI-driven raids and peace, caravans and trading, worldgen geopolitics and the landing sequence.
 0.10 - Cross-Mod Capability Passes: Bringing factions together with psychology, news and territory for a full pass.
 These ship when they are ready - no dates.
 
---- Changelog ---
-v0.7.0 - Regions and Territories Compatibility
+--- Changelog (v0.7.0) - Regions and Territories Compatibility ---
 - NEW - Regional economy: production and taxation computed against Empire's own figures, scaled by how much of a region a faction actually holds.
 - NEW - Settlement size classification, military reach and supply, and a published faction standing surface other mods can read.
 - IMPORTANT - Taxation is modelled but not yet connected to Empire's levy. Tithes are unaffected this release; the wiring lands in a later version.
 - IMPORTANT - Regions and Territories must load BEFORE Factions. Reversed, every Factions type silently disappears and the mod does nothing. RimWorld obeys the order in your mod list, not the declared dependency.
 - Fixed: Harmony debug output was shipped enabled, writing an IL dump to your desktop and slowing patching for every mod loaded after this one.
-v0.6.1
-- Fixed: the in-game mod list showed v0.5.2 with no 0.6.0 notes; version and changelog now agree everywhere
-- Roadmap updated: 0.7 is Regions and Territories compatibility (groundwork for Factions, which will require Empire)
-v0.6.0
-- Moves in step with RimSynapse Core v0.6.0 (Agent and Tool Foundation)
-- Requires Core v0.6.0; saves and settings carry over unchanged
-- In-game wiki guides updated; "MCP" renamed to game tools throughout
-v0.5.2
-- Maintenance release, aligned with Core and Psychology fixes
-- Licence changed to PolyForm Noncommercial 1.0.0
-v0.4.0
-- Updated to support RimSynapse Core v0.4.0 (Multi-provider routing and Image generation).
+
+Full version history: https://github.com/RimSynapse/Factions/wiki/Changelog
 
 --- Compatibility Matrix ---
 - Royalty DLC: Compatible and Optional. Enables royal splinter houses and vassalage generation.
