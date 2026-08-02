@@ -47,11 +47,11 @@ As of 0.7 this mod also owns the systems that decide what a faction is worth. Re
 - Published faction standing: holdings, provinces, tiles, population and top tier exposed as one counted value other mods can read.
 
 --- Roadmap ---
-0.6 - Agent and Tool Foundation: delivered in v0.6.0.
-0.7 - Regions and Territories Compatibility: basic pass-through alongside Empire Refactored and World Domination. Territories set tax rates; the regular game mechanics are left alone.
-0.8 - Demographics, News and Narrative Voice: regional ideology and new map overlays, a newspaper driven by what actually happens on the world map, Aura's own personality, and local text-to-speech.
-0.9 - Factions and Living Societies: state ideologies, conversion and ideological spread, ideological sites and spies - building toward living NPC societies.
-0.10 - Cross-Mod Capability Passes: bringing every module back together for another pass over what the whole set can do.
+0.6 - Agent and Tool Foundation: Delivered in v0.6.0 - the agentic faction framework on Core.
+0.7 - Regions and Territories Compatibility: Current release - the territory and Empire groundwork Factions builds on, including regional economy, settlement classification, military reach and published faction standing.
+0.8 - Demographics, News and Narrative Voice: Consuming the regional demographic data that state ideology and ideological spread will be built on.
+0.9 - Factions and Living Societies: The headline release - state ideologies and ideological spread, conversion, ideological sites and spies; the regional economy tick and taxation; DLC-flavoured archetypes (Royalty splinter houses, Ideology holy wars, Biotech xenotype enclaves, Anomaly void cults, Odyssey starfaring fleets); AI-driven raids and peace, caravans and trading, worldgen geopolitics and the landing sequence.
+0.10 - Cross-Mod Capability Passes: Bringing factions together with psychology, news and territory for a full pass.
 These ship when they are ready - no dates.
 
 --- Changelog ---
